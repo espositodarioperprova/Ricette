@@ -110,17 +110,22 @@
       <div class='recipe-grid'>
         {% for recipe in recipes %}
           <a class='recipe-card {{ "has-photo" if recipe["immagine"] else "no-photo" }} tone-{{ loop.index0 % 3 }}' href='{{ url_for("recipe_detail", slug=recipe["titolo"]|slugify) }}'>
-            {% if recipe['immagine'] %}
-              <span class='recipe-media'>
+            <span class='recipe-media'>
+              {% if recipe['immagine'] %}
                 <img src='{{ recipe["immagine"] }}' alt='{{ recipe["titolo"] }}'>
-                <span class='time-badge'>{{ recipe['tempo_minuti'] }} min</span>
-                <span class='card-open' aria-hidden='true'>↗</span>
-              </span>
-            {% endif %}
+              {% else %}
+                <span class='recipe-media-editorial' aria-hidden='true'>
+                  <span>{{ recipe['tipo_pasto'] }}</span>
+                  <strong>{{ recipe['titolo'][0] }}</strong>
+                  <small>{{ recipe['ingredienti']|length }} ingredienti</small>
+                </span>
+              {% endif %}
+              <span class='time-badge'>{{ recipe['tempo_minuti'] }} min</span>
+              <span class='card-open' aria-hidden='true'>↗</span>
+            </span>
             <span class='recipe-card-body'>
               <span class='card-eyebrow'>
                 {{ recipe['tipo_pasto'] }} · {{ recipe['difficolta'] }}
-                {% if not recipe['immagine'] %}<b>{{ recipe['tempo_minuti'] }} min</b>{% endif %}
               </span>
               <strong>{{ recipe['titolo'] }}</strong>
               <span class='recipe-description'>{{ recipe['descrizione'] }}</span>
@@ -130,7 +135,6 @@
                   {% for tag in recipe['tags'][:2] %}<em>#{{ tag }}</em>{% endfor %}
                 </span>
               </span>
-              {% if not recipe['immagine'] %}<span class='editorial-arrow' aria-hidden='true'>Apri la ricetta <i>→</i></span>{% endif %}
             </span>
           </a>
         {% else %}
