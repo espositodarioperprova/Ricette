@@ -43,116 +43,128 @@
       <a class='chip' href='/?q=comfort'>🧑‍🍳 Comfort</a>
     </section>
 
-    <div class='grid'>
-      <section class='panel'>
-        <div class='panel-title'>
-          <h2>🔎 Cerca ricette</h2>
-          <p>Trova il piatto giusto per il momento giusto.</p>
-        </div>
-        <form method='get'>
-          <input type='text' name='q' value='{{ query }}' placeholder='Cerca per nome, ingrediente o tag'>
-          <select name='difficulty'>
-            <option value=''>Difficoltà</option>
-            <option value='Facile' {{ 'selected' if difficulty == 'Facile' else '' }}>Facile</option>
-            <option value='Media' {{ 'selected' if difficulty == 'Media' else '' }}>Media</option>
-            <option value='Difficile' {{ 'selected' if difficulty == 'Difficile' else '' }}>Difficile</option>
-          </select>
-          <select name='max_time'>
-            <option value=''>Tempo massimo</option>
-            <option value='15' {{ 'selected' if max_time == '15' else '' }}>Fino a 15 minuti</option>
-            <option value='30' {{ 'selected' if max_time == '30' else '' }}>Fino a 30 minuti</option>
-            <option value='60' {{ 'selected' if max_time == '60' else '' }}>Fino a 60 minuti</option>
-          </select>
-          <select name='meal_type'>
-            <option value=''>Tipo pasto</option>
-            <option value='Colazione' {{ 'selected' if meal_type == 'Colazione' else '' }}>Colazione</option>
-            <option value='Pranzo' {{ 'selected' if meal_type == 'Pranzo' else '' }}>Pranzo</option>
-            <option value='Cena' {{ 'selected' if meal_type == 'Cena' else '' }}>Cena</option>
-            <option value='Spuntino' {{ 'selected' if meal_type == 'Spuntino' else '' }}>Spuntino</option>
-          </select>
-          <input type='text' name='tag' value='{{ tag_filter }}' placeholder='Tag: veloce, famiglia'>
-          <button type='submit'>Cerca</button>
-        </form>
-      </section>
+    <div class='content-grid'>
+      <aside class='sidebar'>
+        <section class='panel'>
+          <div class='panel-title'>
+            <h2>🔎 Cerca ricette</h2>
+            <p>Trova il piatto giusto per il momento giusto.</p>
+          </div>
+          <form method='get'>
+            <input type='text' name='q' value='{{ query }}' placeholder='Cerca per nome, ingrediente o tag'>
+            <select name='difficulty'>
+              <option value=''>Difficoltà</option>
+              <option value='Facile' {{ 'selected' if difficulty == 'Facile' else '' }}>Facile</option>
+              <option value='Media' {{ 'selected' if difficulty == 'Media' else '' }}>Media</option>
+              <option value='Difficile' {{ 'selected' if difficulty == 'Difficile' else '' }}>Difficile</option>
+            </select>
+            <select name='max_time'>
+              <option value=''>Tempo massimo</option>
+              <option value='15' {{ 'selected' if max_time == '15' else '' }}>Fino a 15 minuti</option>
+              <option value='30' {{ 'selected' if max_time == '30' else '' }}>Fino a 30 minuti</option>
+              <option value='60' {{ 'selected' if max_time == '60' else '' }}>Fino a 60 minuti</option>
+            </select>
+            <select name='meal_type'>
+              <option value=''>Tipo pasto</option>
+              <option value='Colazione' {{ 'selected' if meal_type == 'Colazione' else '' }}>Colazione</option>
+              <option value='Pranzo' {{ 'selected' if meal_type == 'Pranzo' else '' }}>Pranzo</option>
+              <option value='Cena' {{ 'selected' if meal_type == 'Cena' else '' }}>Cena</option>
+              <option value='Spuntino' {{ 'selected' if meal_type == 'Spuntino' else '' }}>Spuntino</option>
+            </select>
+            <input type='text' name='tag' value='{{ tag_filter }}' placeholder='Tag: veloce, famiglia'>
+            <button type='submit'>Cerca</button>
+          </form>
+        </section>
 
-      <section class='panel'>
-        <div class='panel-title'>
-          <h2>➕ Aggiungi ricetta</h2>
-          <p>Sei l’admin? Aggiungi con facilità.</p>
+        <section class='panel'>
+          <div class='panel-title'>
+            <h2>➕ Aggiungi ricetta</h2>
+            <p>Sei l’admin? Aggiungi con facilità.</p>
+          </div>
+          <form method='post'>
+            <input type='text' name='title' placeholder='Titolo ricetta' required>
+            <textarea name='ingredients' rows='3' placeholder='Ingredienti' required></textarea>
+            <textarea name='instructions' rows='4' placeholder='Procedimento' required></textarea>
+            <select name='difficulty_add'>
+              <option value='Facile'>Facile</option>
+              <option value='Media'>Media</option>
+              <option value='Difficile'>Difficile</option>
+            </select>
+            <input type='number' name='time' min='1' placeholder='Tempo in minuti' required>
+            <select name='meal_type_add'>
+              <option value='Colazione'>Colazione</option>
+              <option value='Pranzo'>Pranzo</option>
+              <option value='Cena'>Cena</option>
+              <option value='Spuntino'>Spuntino</option>
+            </select>
+            <input type='text' name='tags' placeholder='Tag separati da virgola'>
+            <input type='password' name='password' placeholder='Password admin' required>
+            <button type='submit'>Salva ricetta</button>
+          </form>
+        </section>
+      </aside>
+
+      <section class='results-area'>
+        <div class='results-header'>
+          <div>
+            <p class='results-kicker'>Risultati</p>
+            <h2>Le idee giuste per il momento giusto</h2>
+          </div>
+          <div class='results-pill'>{{ recipes|length }} ricette</div>
         </div>
-        <form method='post'>
-          <input type='text' name='title' placeholder='Titolo ricetta' required>
-          <textarea name='ingredients' rows='3' placeholder='Ingredienti' required></textarea>
-          <textarea name='instructions' rows='4' placeholder='Procedimento' required></textarea>
-          <select name='difficulty_add'>
-            <option value='Facile'>Facile</option>
-            <option value='Media'>Media</option>
-            <option value='Difficile'>Difficile</option>
-          </select>
-          <input type='number' name='time' min='1' placeholder='Tempo in minuti' required>
-          <select name='meal_type_add'>
-            <option value='Colazione'>Colazione</option>
-            <option value='Pranzo'>Pranzo</option>
-            <option value='Cena'>Cena</option>
-            <option value='Spuntino'>Spuntino</option>
-          </select>
-          <input type='text' name='tags' placeholder='Tag separati da virgola'>
-          <input type='password' name='password' placeholder='Password admin' required>
-          <button type='submit'>Salva ricetta</button>
-        </form>
+
+        <section class='cards'>
+          {% if recipes %}
+            {% for recipe in recipes %}
+              <article class='card'>
+                <div class='card-top'>
+                  <div>
+                    <a class='recipe-title' href='{{ url_for("recipe_detail", slug=recipe["titolo"]|slugify) }}'>
+                      <h3>{{ recipe['titolo'] }}</h3>
+                    </a>
+                    <p class='meta'>{{ recipe['tipo_pasto'] }}</p>
+                  </div>
+                  <span class='pill'>{{ recipe['difficolta'] }}</span>
+                </div>
+
+                <div class='quick-stats'>
+                  <span>🕒 {{ recipe['tempo_minuti'] }} min</span>
+                  <span>😅 {{ '😅' * (1 if recipe['difficolta'] == 'Facile' else 2 if recipe['difficolta'] == 'Media' else 3) }}</span>
+                </div>
+
+                <div class='card-section'>
+                  <h4>Ingredienti</h4>
+                  <ul>
+                    {% for item in recipe['ingredienti'] %}
+                      <li>
+                        {% if item.get('quantity') %}
+                          <strong>{{ item['quantity'] }}</strong> {{ item['name'] }}
+                        {% else %}
+                          {{ item['name'] }}
+                        {% endif %}
+                      </li>
+                    {% endfor %}
+                  </ul>
+                </div>
+
+                <div class='card-section'>
+                  <h4>Procedimento</h4>
+                  <p>{{ recipe['istruzioni'] }}</p>
+                </div>
+
+                <div class='tags'>
+                  {% for tag in recipe['tags'] %}
+                    <span class='tag'>#{{ tag }}</span>
+                  {% endfor %}
+                </div>
+              </article>
+            {% endfor %}
+          {% else %}
+            <p class='empty'>Nessuna ricetta trovata.</p>
+          {% endif %}
+        </section>
       </section>
     </div>
-
-    <section class='cards'>
-      {% if recipes %}
-        {% for recipe in recipes %}
-          <article class='card'>
-            <div class='card-top'>
-              <div>
-                <a class='recipe-title' href='{{ url_for("recipe_detail", slug=recipe["titolo"]|slugify) }}'>
-                  <h3>{{ recipe['titolo'] }}</h3>
-                </a>
-                <p class='meta'>{{ recipe['tipo_pasto'] }}</p>
-              </div>
-              <span class='pill'>{{ recipe['difficolta'] }}</span>
-            </div>
-
-            <div class='quick-stats'>
-              <span>🕒 {{ recipe['tempo_minuti'] }} min</span>
-              <span>😅 {{ '😅' * (1 if recipe['difficolta'] == 'Facile' else 2 if recipe['difficolta'] == 'Media' else 3) }}</span>
-            </div>
-
-            <div class='card-section'>
-              <h4>Ingredienti</h4>
-              <ul>
-                {% for item in recipe['ingredienti'] %}
-                  <li>
-                    {% if item.get('quantity') %}
-                      <strong>{{ item['quantity'] }}</strong> {{ item['name'] }}
-                    {% else %}
-                      {{ item['name'] }}
-                    {% endif %}
-                  </li>
-                {% endfor %}
-              </ul>
-            </div>
-
-            <div class='card-section'>
-              <h4>Procedimento</h4>
-              <p>{{ recipe['istruzioni'] }}</p>
-            </div>
-
-            <div class='tags'>
-              {% for tag in recipe['tags'] %}
-                <span class='tag'>#{{ tag }}</span>
-              {% endfor %}
-            </div>
-          </article>
-        {% endfor %}
-      {% else %}
-        <p class='empty'>Nessuna ricetta trovata.</p>
-      {% endif %}
-    </section>
   </div>
 </body>
 </html>

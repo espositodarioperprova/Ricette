@@ -26,7 +26,12 @@ pytest -q
 ## Deploy su Vercel
 
 1. Crea un progetto Vercel collegato a questa cartella.
-2. Imposta la variabile d’ambiente `ADMIN_PASSWORD` con la password desiderata.
+2. Imposta le variabili d’ambiente:
+   - `ADMIN_PASSWORD`: password per aggiungere ricette
+   - `SUPABASE_URL`: URL del progetto Supabase
+   - `SUPABASE_ANON_KEY`: chiave anon del progetto Supabase
 3. Fai il deploy.
+
+Per Supabase, crea una tabella chiamata `recipes` con colonne semplici: `titolo`, `ingredienti`, `istruzioni`, `difficolta`, `tempo_minuti`, `tipo_pasto`, `tags`.
 
 Nota: in questa versione demo le ricette vengono salvate in un file locale. Per un rilascio più robusto, il prossimo passo naturale è aggiungere un database o Vercel KV.
