@@ -1,0 +1,56 @@
+[
+  {
+    "titolo": "Biscotti della longevità",
+    "ingredienti": "100 g di okara di macadamia, 1 cucchiaio abbondante di olio evo, 1 bustina di vanillina, 3 datteri, 1 cucchiaio di semi di chia, 2 cucchiaini di cacao, 1 uovo, 2 cucchiai o più di fiocchi d'avena",
+    "istruzioni": "Frulla l'okara di macadamia con l'olio, la vanillina, i datteri, i semi di chia, il cacao e l'uovo fino a ottenere un impasto omogeneo. Aggiungi gli fiocchi d'avena fino a raggiungere una consistenza abbastanza soda da poter formare dei biscotti. Forma delle palline o piccoli biscotti, disponili su una teglia e cuoci a 180 °C per 12-15 minuti, fino a dorare leggermente.",
+    "difficolta": "Facile",
+    "tempo_minuti": 20,
+    "tipo_pasto": "Spuntino",
+    "tags": "dolce, snack, longevità"
+  },
+  {
+    "titolo": "Pasta cremosa al branzino e broccoli",
+    "ingredienti": "per mezzo chilo di pasta integrale, abbondanti broccoli al vapore, sale, 1 cucchiaio di lievito nutrizionale, acqua, mezzo limone, 2 cucchiai di olio evo, 1 cucchiaio scarso di burro di anacardi, 250 g di filetti di branzino cotti, 1 spicchio d'aglio, olio per cuocere il pesce",
+    "istruzioni": "Lessa i broccoli al vapore fino a renderli morbidi, poi scolali e frullali con sale, lievito nutrizionale, acqua, mezzo limone, olio evo e il burro di anacardi fino ad ottenere una crema liscia. In una padella cuoci il branzino con un filo d'olio e uno spicchio d'aglio, poi sfilacciarlo o lasciarlo a pezzetti. Cuoci la pasta integrale, scolala al dente e condisci con la crema di broccoli. Aggiungi il branzino a cima e servi subito.",
+    "difficolta": "Media",
+    "tempo_minuti": 35,
+    "tipo_pasto": "Pranzo",
+    "tags": "pasta, pesce, cremosa"
+  },
+  {
+    "titolo": "Rigatoni al ragù di coniglio",
+    "ingredienti": "1 coscia di coniglio già cotta e scarnificata, 200 g di rigatoni integrali, 1 cipolla piccola, 1 carota piccola, mezzo cucchiaino scarso di curcuma, un po' di polvere d'aglio, mezzo dado, sale, olio, 1 bicchiere d'acqua",
+    "istruzioni": "Fai soffriggere la cipolla e la carota a cubetti piccoli in un filo d'olio. Aggiungi il coniglio già cotto e scarnificato, la curcuma, la polvere d'aglio, il dado e un bicchiere d'acqua. Cuoci a fuoco lento per circa 50 minuti, mescolando di tanto in tanto fino a ottenere un ragù saporito. Nel frattempo cuoci i rigatoni integrali. Scola la pasta, condisci con il ragù e servi caldo.",
+    "difficolta": "Media",
+    "tempo_minuti": 60,
+    "tipo_pasto": "Cena",
+    "tags": "pasta, carne, comfort food"
+  },
+  {
+    "titolo": "Pasta test",
+    "ingredienti": "pasta, pomodoro",
+    "istruzioni": "Cuoci tutto",
+    "difficolta": "Facile",
+    "tempo_minuti": 15,
+    "tipo_pasto": "Pranzo",
+    "tags": "test, veloce"
+  },
+  {
+    "titolo": "Pasta test",
+    "ingredienti": "pasta, pomodoro",
+    "istruzioni": "Cuoci tutto",
+    "difficolta": "Facile",
+    "tempo_minuti": 15,
+    "tipo_pasto": "Pranzo",
+    "tags": "test, veloce"
+  },
+  {
+    "titolo": "Pasta test",
+    "ingredienti": "pasta, pomodoro",
+    "istruzioni": "Cuoci tutto",
+    "difficolta": "Facile",
+    "tempo_minuti": 15,
+    "tipo_pasto": "Pranzo",
+    "tags": "test, veloce"
+  }
+]
