@@ -77,9 +77,23 @@ document.querySelector('[data-next-step]')?.addEventListener('click', () => {
 });
 
 document.querySelector('[data-admin-photo]')?.addEventListener('change', event => {
-  const filename = event.target.files[0]?.name;
+  const file = event.target.files[0];
   const label = document.querySelector('[data-admin-photo-label]');
-  if (label) label.textContent = filename || 'Scegli foto';
+  const message = document.querySelector('[data-admin-photo-message]');
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
+  const error = file && (
+    file.size > 4_000_000
+      ? 'La foto supera 4 MB. Scegline una più leggera.'
+      : !allowedTypes.includes(file.type)
+        ? 'Formato non supportato. Usa JPG, PNG, WebP o AVIF.'
+        : ''
+  );
+  if (error) event.target.value = '';
+  if (label) label.textContent = error ? 'Scegli un’altra foto' : file?.name || 'Scegli foto';
+  if (message) {
+    message.textContent = error || '';
+    message.hidden = !error;
+  }
 });
 
 restoreProgress();

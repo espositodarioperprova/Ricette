@@ -32,11 +32,13 @@ pytest -q
 3. Imposta le variabili d’ambiente:
    - `ADMIN_PASSWORD`: password per aggiungere ricette
    - `SUPABASE_URL`: URL del progetto Supabase
-   - `SUPABASE_ANON_KEY`: chiave anon usata per leggere e salvare le ricette
-   - `SUPABASE_SERVICE_ROLE_KEY`: chiave server privata usata per caricare le foto
+   - `SUPABASE_ANON_KEY`: chiave anon usata esclusivamente per leggere le ricette
+   - `SUPABASE_SERVICE_ROLE_KEY`: chiave server privata usata per salvare ricette, caricare foto e associarle ai record esistenti
    - `SUPABASE_TABLE`: nome della tabella, facoltativo; il valore predefinito è `recipes`
    - `SUPABASE_STORAGE_BUCKET`: nome del bucket, facoltativo; il valore predefinito è `recipe-images`
    - `SECRET_KEY`: chiave casuale usata per firmare la sessione admin; se assente viene usata `ADMIN_PASSWORD`
 4. Fai un nuovo deploy dopo aver salvato le variabili.
 
 `SUPABASE_SERVICE_ROLE_KEY` deve restare esclusivamente nelle variabili server di Vercel e non deve mai essere inserita nel frontend o nel repository. Supabase è l'unica fonte delle ricette in ogni ambiente: senza `SUPABASE_URL` e una chiave valida, Tavola restituisce un errore `503` invece di mostrare dati locali obsoleti.
+
+Le immagini caricate dall'app sono limitate a 4 MB per restare sotto il limite di 4,5 MB delle richieste Vercel. Il bucket mantiene un limite superiore di sicurezza di 8 MB.

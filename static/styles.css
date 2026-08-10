@@ -950,7 +950,19 @@ button {
   gap: 8px;
 }
 
+.admin-recipe-tools form > small {
+  max-width: 260px;
+  color: var(--danger);
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.admin-recipe-tools form > small[hidden] {
+  display: none;
+}
+
 .admin-recipe-tools label {
+  min-width: 0;
   position: relative;
 }
 
@@ -974,9 +986,13 @@ button {
 }
 
 .admin-recipe-tools label > span {
+  max-width: 280px;
   color: var(--forest);
   background: var(--white);
   border: 1px solid #aac1b6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .admin-recipe-tools input:focus-visible + span {
@@ -2137,6 +2153,7 @@ button {
 
   .admin-recipe-tools form {
     width: 100%;
+    flex-wrap: wrap;
   }
 
   .admin-recipe-tools label,
@@ -2144,6 +2161,15 @@ button {
   .admin-recipe-tools button {
     flex: 1;
     justify-content: center;
+  }
+
+  .admin-recipe-tools label > span {
+    max-width: none;
+  }
+
+  .admin-recipe-tools form > small {
+    width: 100%;
+    max-width: none;
   }
 
   .recipe-hero {

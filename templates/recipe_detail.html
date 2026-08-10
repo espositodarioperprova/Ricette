@@ -63,6 +63,7 @@
             <span data-admin-photo-label>Scegli foto</span>
           </label>
           <button type='submit'>{{ 'Sostituisci' if recipe['immagine'] else 'Carica foto' }}</button>
+          <small data-admin-photo-message hidden></small>
         </form>
       </section>
     {% endif %}

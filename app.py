@@ -70,10 +70,10 @@ def _slugify(text):
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.jinja_env.filters["slugify"] = _slugify
-app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
+app.config["MAX_CONTENT_LENGTH"] = 4_400_000
 
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "cambiaquesta")
-app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY") or ADMIN_PASSWORD
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY") or ADMIN_PASSWORD or None
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_SECURE"] = bool(os.environ.get("VERCEL"))
@@ -84,7 +84,7 @@ SUPABASE_STORAGE_KEY = SUPABASE_SERVICE_ROLE_KEY or SUPABASE_KEY
 SUPABASE_TABLE = os.environ.get("SUPABASE_TABLE", "recipes")
 SUPABASE_STORAGE_BUCKET = os.environ.get(
     "SUPABASE_STORAGE_BUCKET", "recipe-images")
-MAX_IMAGE_BYTES = 8 * 1024 * 1024
+MAX_IMAGE_BYTES = 4_000_000
 ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp", "avif"}
 
 
@@ -180,6 +180,7 @@ def update_recipe_image(recipe_id, image_url):
         "apikey": SUPABASE_SERVICE_ROLE_KEY,
         "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
         "Content-Type": "application/json",
+        "Prefer": "return=representation",
     }
     request_url = (
         f"{SUPABASE_URL}/rest/v1/{SUPABASE_TABLE}"
@@ -192,8 +193,14 @@ def update_recipe_image(recipe_id, image_url):
             headers=headers,
             method="PATCH",
         )
-        with urllib_request.urlopen(update_request, timeout=10):
-            return True
+        with urllib_request.urlopen(update_request, timeout=10) as response:
+            updated_rows = json.load(response)
+        return (
+            isinstance(updated_rows, list)
+            and len(updated_rows) == 1
+            and str(updated_rows[0].get("id")) == str(recipe_id)
+            and updated_rows[0].get("immagine") == image_url
+        )
     except (HTTPError, URLError, TimeoutError, ValueError):
         return False
 
@@ -223,7 +230,7 @@ def save_uploaded_image(image_file, title):
 
     image_data = image_file.read(MAX_IMAGE_BYTES + 1)
     if len(image_data) > MAX_IMAGE_BYTES:
-        return "", "La foto supera 8 MB. Riducila e riprova."
+        return "", "La foto supera 4 MB. Riducila e riprova."
     detected_extension = detect_image_extension(image_data)
     comparable_extension = "jpg" if extension == "jpeg" else extension
     if not detected_extension or detected_extension != comparable_extension:
@@ -294,11 +301,11 @@ def persist_recipe(recipe):
 @app.errorhandler(RequestEntityTooLarge)
 def handle_oversized_upload(error):
     if request.endpoint == "update_recipe_photo":
-        flash("La foto è troppo grande. Il limite massimo è 8 MB.", "error")
+        flash("La foto è troppo grande. Il limite massimo è 4 MB.", "error")
         return redirect(url_for("recipe_detail", slug=request.view_args["slug"]))
     return render_template(
         "add_recipe.html",
-        message="La foto è troppo grande. Il limite massimo è 8 MB.",
+        message="La foto è troppo grande. Il limite massimo è 4 MB.",
         success=False,
         form=MultiDict(),
     ), 413
@@ -315,6 +322,15 @@ def handle_recipe_store_error(error):
 @app.context_processor
 def inject_admin_state():
     return {"is_admin": session.get("is_admin", False)}
+
+
+def admin_is_configured():
+    return bool(
+        ADMIN_PASSWORD
+        and app.config.get("SECRET_KEY")
+        and SUPABASE_URL
+        and SUPABASE_SERVICE_ROLE_KEY
+    )
 
 
 def recipe_matches(recipe, query, difficulty, max_time, meal_type, tag_filter):
@@ -389,11 +405,14 @@ def recipe_detail(slug):
 
 @app.route('/admin', methods=['GET', 'POST'])
 def admin_login():
+    if not admin_is_configured():
+        return "L’area admin non è configurata.", 503
     next_url = request.values.get('next', '').strip()
     if not next_url.startswith('/') or next_url.startswith('//'):
         next_url = url_for('home')
     if request.method == 'POST':
         password = request.form.get('password', '')
+        session.clear()
         if compare_digest(password, ADMIN_PASSWORD):
             session['is_admin'] = True
             return redirect(next_url)
@@ -469,8 +488,10 @@ def add_recipe():
     recipes = load_recipes()
 
     if request.method == 'POST':
+        if not admin_is_configured():
+            return "L’area admin non è configurata.", 503
         password = request.form.get('password', '').strip()
-        if password != ADMIN_PASSWORD:
+        if not compare_digest(password, ADMIN_PASSWORD):
             message = 'Password sbagliata. Usa quella impostata come variabile d’ambiente.'
             success = False
         else:
