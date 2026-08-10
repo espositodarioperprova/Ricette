@@ -5,7 +5,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app import app
+from app import app, load_recipes
 
 
 @pytest.fixture
@@ -34,3 +34,15 @@ def test_can_add_recipe_with_admin_password(client):
     })
     assert response.status_code == 200
     assert b'Ricetta aggiunta con successo.' in response.data
+
+
+def test_seed_contains_only_user_recipes():
+    recipes = load_recipes()
+    assert len(recipes) >= 5
+    assert {recipe['titolo'] for recipe in recipes} >= {
+        'Biscotti della longevità',
+        'Pasta cremosa al branzino e broccoli',
+        'Rigatoni al ragù di coniglio',
+        'Spaghetti integrali all’orata, pomodorini e crema di carote',
+        'Gnocchi al pesto di zucchine e ricotta'
+    }

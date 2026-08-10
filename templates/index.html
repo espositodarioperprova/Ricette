@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang='it'>
+<head>
+  <meta charset='utf-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1'>
+  <title>Ricettario italiano</title>
+  <link rel='stylesheet' href='{{ url_for("static", filename="styles.css") }}'>
+</head>
+<body>
+  <div class='container'>
+    <header>
+      <h1>Ricettario italiano</h1>
+      <p class='subtitle'>Un piccolo POC elegante per cercare ricette facilmente, filtrare per ingrediente, difficoltà, tempo, tipo di pasto e tag, e aggiungere nuove ricette in modo rapido.</p>
+      <p class='small'>Le ricette vengono caricate da un file locale in questa versione demo.</p>
+    </header>
+
+    {% if message %}
+      <div class='message {{ "success" if success else "error" }}'>{{ message }}</div>
+    {% endif %}
+
+    <div class='grid'>
+      <section class='panel'>
+        <h2>Cerca ricette</h2>
+        <form method='get'>
+          <input type='text' name='q' value='{{ query }}' placeholder='Cerca per ingrediente, nome o tag'>
+          <select name='difficulty'>
+            <option value=''>Difficoltà</option>
+            <option value='Facile' {{ 'selected' if difficulty == 'Facile' else '' }}>Facile</option>
+            <option value='Media' {{ 'selected' if difficulty == 'Media' else '' }}>Media</option>
+            <option value='Difficile' {{ 'selected' if difficulty == 'Difficile' else '' }}>Difficile</option>
+          </select>
+          <select name='max_time'>
+            <option value=''>Tempo massimo</option>
+            <option value='15' {{ 'selected' if max_time == '15' else '' }}>Fino a 15 minuti</option>
+            <option value='30' {{ 'selected' if max_time == '30' else '' }}>Fino a 30 minuti</option>
+            <option value='60' {{ 'selected' if max_time == '60' else '' }}>Fino a 60 minuti</option>
+          </select>
+          <select name='meal_type'>
+            <option value=''>Tipo pasto</option>
+            <option value='Colazione' {{ 'selected' if meal_type == 'Colazione' else '' }}>Colazione</option>
+            <option value='Pranzo' {{ 'selected' if meal_type == 'Pranzo' else '' }}>Pranzo</option>
+            <option value='Cena' {{ 'selected' if meal_type == 'Cena' else '' }}>Cena</option>
+            <option value='Spuntino' {{ 'selected' if meal_type == 'Spuntino' else '' }}>Spuntino</option>
+          </select>
+          <input type='text' name='tag' value='{{ tag_filter }}' placeholder='Tag: veloce, famiglia'>
+          <button type='submit'>Cerca</button>
+        </form>
+      </section>
+
+      <section class='panel'>
+        <h2>Aggiungi ricetta (admin)</h2>
+        <form method='post'>
+          <input type='text' name='title' placeholder='Titolo ricetta' required>
+          <textarea name='ingredients' rows='3' placeholder='Ingredienti' required></textarea>
+          <textarea name='instructions' rows='4' placeholder='Procedimento' required></textarea>
+          <select name='difficulty_add'>
+            <option value='Facile'>Facile</option>
+            <option value='Media'>Media</option>
+            <option value='Difficile'>Difficile</option>
+          </select>
+          <input type='number' name='time' min='1' placeholder='Tempo in minuti' required>
+          <select name='meal_type_add'>
+            <option value='Colazione'>Colazione</option>
+            <option value='Pranzo'>Pranzo</option>
+            <option value='Cena'>Cena</option>
+            <option value='Spuntino'>Spuntino</option>
+          </select>
+          <input type='text' name='tags' placeholder='Tag separati da virgola'>
+          <input type='password' name='password' placeholder='Password admin' required>
+          <button type='submit'>Salva ricetta</button>
+        </form>
+      </section>
+    </div>
+
+    <section class='cards'>
+      {% if recipes %}
+        {% for recipe in recipes %}
+          <article class='card'>
+            <div class='card-top'>
+              <h3>{{ recipe['titolo'] }}</h3>
+              <span class='pill'>{{ recipe['difficolta'] }}</span>
+            </div>
+            <p><strong>Tempo:</strong> {{ recipe['tempo_minuti'] }} minuti</p>
+            <p><strong>Pasto:</strong> {{ recipe['tipo_pasto'] }}</p>
+            <p><strong>Ingredienti:</strong> {{ recipe['ingredienti'] }}</p>
+            <p><strong>Procedimento:</strong> {{ recipe['istruzioni'] }}</p>
+            <div class='tags'>
+              {% for tag in recipe['tags'].split(',') %}
+                {% if tag.strip() %}
+                  <span class='tag'>{{ tag.strip() }}</span>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </article>
+        {% endfor %}
+      {% else %}
+        <p class='empty'>Nessuna ricetta trovata.</p>
+      {% endif %}
+    </section>
+  </div>
+</body>
+</html>

@@ -1,14 +1,19 @@
-from flask import Flask, request
-from html import escape
+from flask import Flask, render_template, request
 import json
 import os
 from pathlib import Path
+from urllib import request as urllib_request
+from urllib.error import HTTPError, URLError
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="templates", static_folder="static")
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_FILE = BASE_DIR / "recipes.json"
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "cambiaquesta")
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
+SUPABASE_KEY = os.environ.get("SUPABASE_ANON_KEY") or os.environ.get(
+    "SUPABASE_SERVICE_ROLE_KEY", "")
+SUPABASE_TABLE = os.environ.get("SUPABASE_TABLE", "recipes")
 
 DEFAULT_RECIPES = [
     {
@@ -41,20 +46,90 @@ DEFAULT_RECIPES = [
 ]
 
 
+def normalize_recipe(raw_recipe):
+    return {
+        "titolo": raw_recipe.get("titolo") or raw_recipe.get("title") or "",
+        "ingredienti": raw_recipe.get("ingredienti") or raw_recipe.get("ingredients") or "",
+        "istruzioni": raw_recipe.get("istruzioni") or raw_recipe.get("instructions") or "",
+        "difficolta": raw_recipe.get("difficolta") or raw_recipe.get("difficulty") or "Facile",
+        "tempo_minuti": int(raw_recipe.get("tempo_minuti") or raw_recipe.get("time") or 0),
+        "tipo_pasto": raw_recipe.get("tipo_pasto") or raw_recipe.get("meal_type") or "Pranzo",
+        "tags": raw_recipe.get("tags") or ""
+    }
+
+
+def is_valid_recipe(recipe):
+    title = (recipe.get("titolo") or "").strip()
+    tags = (recipe.get("tags") or "").lower()
+    if not title:
+        return False
+    if title.lower() == "pasta test" or "test" in tags:
+        return False
+    return True
+
+
 def load_recipes():
+    if SUPABASE_URL and SUPABASE_KEY:
+        try:
+            headers = {
+                "apikey": SUPABASE_KEY,
+                "Authorization": f"Bearer {SUPABASE_KEY}",
+                "Content-Type": "application/json"
+            }
+            request = urllib_request.Request(
+                f"{SUPABASE_URL}/rest/v1/{SUPABASE_TABLE}?select=*",
+                headers=headers,
+                method="GET"
+            )
+            with urllib_request.urlopen(request, timeout=10) as response:
+                data = json.load(response)
+                if isinstance(data, list):
+                    cleaned = [normalize_recipe(
+                        item) for item in data if is_valid_recipe(normalize_recipe(item))]
+                    if cleaned:
+                        return cleaned
+        except (HTTPError, URLError, TimeoutError, ValueError):
+            pass
+
     if DATA_FILE.exists():
         try:
             data = json.loads(DATA_FILE.read_text(encoding='utf-8'))
-            if isinstance(data, list):
-                return data
+            if isinstance(data, list) and data:
+                cleaned = [normalize_recipe(
+                    item) for item in data if is_valid_recipe(normalize_recipe(item))]
+                if cleaned:
+                    return cleaned
         except json.JSONDecodeError:
             pass
+
     return [dict(recipe) for recipe in DEFAULT_RECIPES]
 
 
 def save_recipes(recipes):
     DATA_FILE.write_text(json.dumps(
         recipes, ensure_ascii=False, indent=2), encoding='utf-8')
+
+
+def save_recipe_to_supabase(recipe):
+    if not (SUPABASE_URL and SUPABASE_KEY):
+        return
+    try:
+        headers = {
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Content-Type": "application/json"
+        }
+        payload = json.dumps(recipe).encode("utf-8")
+        request = urllib_request.Request(
+            f"{SUPABASE_URL}/rest/v1/{SUPABASE_TABLE}",
+            data=payload,
+            headers=headers,
+            method="POST"
+        )
+        with urllib_request.urlopen(request, timeout=10):
+            pass
+    except (HTTPError, URLError, TimeoutError, ValueError):
+        pass
 
 
 recipes = load_recipes()
@@ -89,141 +164,24 @@ def recipe_matches(recipe, query, difficulty, max_time, meal_type, tag_filter):
 
 
 def build_page(filtered_recipes, query, difficulty, max_time, meal_type, tag_filter, message=None, success=True):
-    cards = []
-    if filtered_recipes:
-        for recipe in filtered_recipes:
-            tags_html = "".join(
-                f"<span class='tag'>{escape(tag.strip())}</span>"
-                for tag in recipe["tags"].split(",")
-                if tag.strip()
-            )
-            cards.append(f"""
-            <article class='card'>
-                <div class='card-top'>
-                    <h3>{escape(recipe['titolo'])}</h3>
-                    <span class='pill'>{escape(recipe['difficolta'])}</span>
-                </div>
-                <p><strong>Tempo:</strong> {recipe['tempo_minuti']} minuti</p>
-                <p><strong>Pasto:</strong> {escape(recipe['tipo_pasto'])}</p>
-                <p><strong>Ingredienti:</strong> {escape(recipe['ingredienti'])}</p>
-                <p><strong>Procedimento:</strong> {escape(recipe['istruzioni'])}</p>
-                <div class='tags'>{tags_html}</div>
-            </article>
-            """)
-    else:
-        cards.append("<p class='empty'>Nessuna ricetta trovata.</p>")
-
-    message_html = ""
-    if message:
-        message_html = f"<div class='message {'success' if success else 'error'}'>{escape(message)}</div>"
-
-    return f"""<!doctype html>
-<html lang='it'>
-<head>
-  <meta charset='utf-8'>
-  <meta name='viewport' content='width=device-width, initial-scale=1'>
-  <title>Ricettario italiano</title>
-  <style>
-    body {{ font-family: Arial, sans-serif; margin: 0; background: #f7f7f2; color: #222; }}
-    .container {{ max-width: 1100px; margin: 0 auto; padding: 24px; }}
-    header {{ background: linear-gradient(135deg, #2e7d32, #66bb6a); color: white; padding: 24px; border-radius: 12px; margin-bottom: 20px; }}
-    h1, h2 {{ margin-top: 0; }}
-    .grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }}
-    .panel {{ background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }}
-    form {{ display: grid; gap: 10px; }}
-    input, select, textarea, button {{ padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; }}
-    button {{ background: #2e7d32; color: white; border: none; cursor: pointer; }}
-    .cards {{ display: grid; gap: 14px; margin-top: 20px; }}
-    .card {{ background: white; padding: 16px; border-radius: 12px; border: 1px solid #ddd; }}
-    .card-top {{ display: flex; justify-content: space-between; align-items: center; gap: 10px; }}
-    .pill {{ background: #e8f5e9; color: #2e7d32; padding: 4px 8px; border-radius: 999px; font-size: 12px; }}
-    .tag {{ display: inline-block; margin-right: 6px; margin-top: 6px; background: #f1f1f1; padding: 4px 8px; border-radius: 999px; font-size: 12px; }}
-    .message {{ padding: 12px; border-radius: 8px; margin-bottom: 12px; }}
-    .success {{ background: #e8f5e9; color: #2e7d32; }}
-    .error {{ background: #ffebee; color: #c62828; }}
-    .empty {{ color: #777; }}
-    .small {{ color: #666; font-size: 13px; }}
-    @media (max-width: 800px) {{ .grid {{ grid-template-columns: 1fr; }} }}
-  </style>
-</head>
-<body>
-  <div class='container'>
-    <header>
-      <h1>Ricettario italiano</h1>
-      <p>Un piccolo POC per cercare ricette facilmente, filtrare per ingrediente, difficoltà, tempo, tipo di pasto e tag, e aggiungere nuove ricette in modo rapido.</p>
-      <p class='small'>Le ricette vengono caricate da un file locale in questa versione demo.</p>
-    </header>
-
-    {message_html}
-
-    <div class='grid'>
-      <section class='panel'>
-        <h2>Cerca ricette</h2>
-        <form method='get'>
-          <input type='text' name='q' value='{escape(query)}' placeholder='Cerca per ingrediente, nome o tag'>
-          <select name='difficulty'>
-            <option value=''>Difficoltà</option>
-            <option value='Facile' {'selected' if difficulty == 'Facile' else ''}>Facile</option>
-            <option value='Media' {'selected' if difficulty == 'Media' else ''}>Media</option>
-            <option value='Difficile' {'selected' if difficulty == 'Difficile' else ''}>Difficile</option>
-          </select>
-          <select name='max_time'>
-            <option value=''>Tempo massimo</option>
-            <option value='15' {'selected' if max_time == '15' else ''}>Fino a 15 minuti</option>
-            <option value='30' {'selected' if max_time == '30' else ''}>Fino a 30 minuti</option>
-            <option value='60' {'selected' if max_time == '60' else ''}>Fino a 60 minuti</option>
-          </select>
-          <select name='meal_type'>
-            <option value=''>Tipo pasto</option>
-            <option value='Colazione' {'selected' if meal_type == 'Colazione' else ''}>Colazione</option>
-            <option value='Pranzo' {'selected' if meal_type == 'Pranzo' else ''}>Pranzo</option>
-            <option value='Cena' {'selected' if meal_type == 'Cena' else ''}>Cena</option>
-            <option value='Spuntino' {'selected' if meal_type == 'Spuntino' else ''}>Spuntino</option>
-          </select>
-          <input type='text' name='tag' value='{escape(tag_filter)}' placeholder='Tag: veloce, famiglia'>
-          <button type='submit'>Cerca</button>
-        </form>
-      </section>
-
-      <section class='panel'>
-        <h2>Aggiungi ricetta (admin)</h2>
-        <form method='post'>
-          <input type='text' name='title' placeholder='Titolo ricetta' required>
-          <textarea name='ingredients' rows='3' placeholder='Ingredienti' required></textarea>
-          <textarea name='instructions' rows='4' placeholder='Procedimento' required></textarea>
-          <select name='difficulty_add'>
-            <option value='Facile'>Facile</option>
-            <option value='Media'>Media</option>
-            <option value='Difficile'>Difficile</option>
-          </select>
-          <input type='number' name='time' min='1' placeholder='Tempo in minuti' required>
-          <select name='meal_type_add'>
-            <option value='Colazione'>Colazione</option>
-            <option value='Pranzo'>Pranzo</option>
-            <option value='Cena'>Cena</option>
-            <option value='Spuntino'>Spuntino</option>
-          </select>
-          <input type='text' name='tags' placeholder='Tag separati da virgola'>
-          <input type='password' name='password' placeholder='Password admin' required>
-          <button type='submit'>Salva ricetta</button>
-        </form>
-      </section>
-    </div>
-
-    <section class='cards'>
-      {''.join(cards)}
-    </section>
-  </div>
-</body>
-</html>
-"""
+    return render_template(
+        "index.html",
+        recipes=filtered_recipes,
+        query=query,
+        difficulty=difficulty,
+        max_time=max_time,
+        meal_type=meal_type,
+        tag_filter=tag_filter,
+        message=message,
+        success=success,
+    )
 
 
 @app.route('/', methods=['GET', 'POST'])
 def home():
-    global recipes
     message = None
     success = True
+    recipes = load_recipes()
 
     if request.method == 'POST':
         password = request.form.get('password', '').strip()
@@ -243,7 +201,7 @@ def home():
                 message = 'Compila titolo, ingredienti, procedimento e tempo.'
                 success = False
             else:
-                recipes.append({
+                recipe = {
                     'titolo': title,
                     'ingredienti': ingredients,
                     'istruzioni': instructions,
@@ -251,8 +209,10 @@ def home():
                     'tempo_minuti': int(time),
                     'tipo_pasto': meal_type,
                     'tags': tags
-                })
+                }
+                recipes.append(recipe)
                 save_recipes(recipes)
+                save_recipe_to_supabase(recipe)
                 message = 'Ricetta aggiunta con successo.'
 
     query = request.args.get('q', '').strip(

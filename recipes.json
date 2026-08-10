@@ -27,22 +27,22 @@
     "tags": "pasta, carne, comfort food"
   },
   {
-    "titolo": "Pasta test",
-    "ingredienti": "pasta, pomodoro",
-    "istruzioni": "Cuoci tutto",
-    "difficolta": "Facile",
-    "tempo_minuti": 15,
-    "tipo_pasto": "Pranzo",
-    "tags": "test, veloce"
+    "titolo": "Spaghetti integrali all’orata, pomodorini e crema di carote",
+    "ingredienti": "500 g di spaghetti integrali, 250 g di filetti d'orata, 400 g di pomodorini, 2 carote molto ben lessate, acqua, olio evo, sale, aglio, poco dado in polvere, 2 o 3 cucchiaioni molto pieni di lievito nutrizionale",
+    "istruzioni": "Lessa le carote fino a renderle molto morbide, poi scolale e frullale con acqua, olio, sale, aglio, un po' di dado in polvere e il lievito nutrizionale fino a ottenere una crema liscia e salsosa. In una padella cuoci i pomodorini con un filo d'olio e uno spicchio d'aglio, quindi aggiungi l'orata e cuocila delicatamente. Nel frattempo cuoci gli spaghetti integrali al dente, scolali e condisci con il sughetto di pomodorini e il pesce. Servi con la crema di carote a fianco o sopra, per un piatto ricco e molto saporito.",
+    "difficolta": "Media",
+    "tempo_minuti": 35,
+    "tipo_pasto": "Cena",
+    "tags": "pasta, pesce, cremosa, integrale"
   },
   {
-    "titolo": "Pasta test",
-    "ingredienti": "pasta, pomodoro",
-    "istruzioni": "Cuoci tutto",
+    "titolo": "Gnocchi al pesto di zucchine e ricotta",
+    "ingredienti": "500 g di gnocchi, 2 zucchine, 200 g di ricotta, 1 spicchio d'aglio, olio evo, sale, pepe, succo di mezzo limone, parmigiano grattugiato, una manciata di basilico",
+    "istruzioni": "Cuoci le zucchine a pezzetti in padella con olio e aglio fino a renderle morbide. Frulla le zucchine cotte con la ricotta, il limone, il basilico, un po' di sale, pepe e un filo d'olio fino a ottenere un pesto cremoso. Cuoci gli gnocchi, scolali e condisci con il pesto di zucchine e ricotta. Finisci con un po' di parmigiano grattugiato e servilo caldo.",
     "difficolta": "Facile",
-    "tempo_minuti": 15,
+    "tempo_minuti": 25,
     "tipo_pasto": "Pranzo",
-    "tags": "test, veloce"
+    "tags": "vegetariano, comfort, pesto"
   },
   {
     "titolo": "Pasta test",
