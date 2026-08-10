@@ -5,7 +5,6 @@
   <meta name='viewport' content='width=device-width, initial-scale=1'>
   <meta name='theme-color' content='#123b31'>
   <title>{{ recipe['titolo'] }} · Tavola</title>
-  <link rel='preconnect' href='https://images.unsplash.com'>
   <link rel='stylesheet' href='{{ url_for("static", filename="styles.css") }}'>
 </head>
 <body class='detail-page' data-recipe-id='{{ recipe["titolo"]|slugify }}'>
@@ -21,9 +20,17 @@
   </header>
 
   <main>
-    <section class='recipe-hero'>
-      <img src='{{ recipe["immagine"] }}' alt='{{ recipe["titolo"] }}'>
-      <span class='recipe-hero-shade'></span>
+    <section class='recipe-hero {{ "has-photo" if recipe["immagine"] else "no-photo" }}'>
+      {% if recipe['immagine'] %}
+        <img src='{{ recipe["immagine"] }}' alt='{{ recipe["titolo"] }}'>
+        <span class='recipe-hero-shade'></span>
+      {% else %}
+        <span class='recipe-hero-editorial' aria-hidden='true'>
+          <span>Tavola</span>
+          <span>{{ recipe['tipo_pasto'] }}</span>
+          <span>{{ recipe['tempo_minuti'] }} minuti</span>
+        </span>
+      {% endif %}
       <a class='hero-back' href='{{ url_for("home") }}#ricette'>← Tutte le ricette</a>
       <div class='recipe-hero-copy'>
         <p class='overline'>{{ recipe['tipo_pasto'] }} · {{ recipe['difficolta'] }}</p>
@@ -101,8 +108,8 @@
         </div>
         <div class='related-grid'>
           {% for item in related %}
-            <a class='related-card' href='{{ url_for("recipe_detail", slug=item["titolo"]|slugify) }}'>
-              <img src='{{ item["immagine"] }}' alt='' loading='lazy'>
+            <a class='related-card {{ "has-photo" if item["immagine"] else "no-photo" }}' href='{{ url_for("recipe_detail", slug=item["titolo"]|slugify) }}'>
+              {% if item['immagine'] %}<img src='{{ item["immagine"] }}' alt='{{ item["titolo"] }}' loading='lazy'>{% endif %}
               <span><small>{{ item['tempo_minuti'] }} min · {{ item['tipo_pasto'] }}</small><strong>{{ item['titolo'] }}</strong></span>
             </a>
           {% endfor %}

@@ -5,7 +5,6 @@
   <meta name='viewport' content='width=device-width, initial-scale=1'>
   <meta name='theme-color' content='#123b31'>
   <title>Tavola · Cosa mangiamo oggi?</title>
-  <link rel='preconnect' href='https://images.unsplash.com'>
   <link rel='stylesheet' href='{{ url_for("static", filename="styles.css") }}'>
 </head>
 <body class='home-page'>
@@ -39,9 +38,17 @@
       </div>
 
       {% if featured %}
-        <a class='daily-pick' href='{{ url_for("recipe_detail", slug=featured["titolo"]|slugify) }}'>
-          <img src='{{ featured["immagine"] }}' alt='{{ featured["titolo"] }}'>
-          <span class='daily-shade'></span>
+        <a class='daily-pick {{ "has-photo" if featured["immagine"] else "no-photo" }}' href='{{ url_for("recipe_detail", slug=featured["titolo"]|slugify) }}'>
+          {% if featured['immagine'] %}
+            <img src='{{ featured["immagine"] }}' alt='{{ featured["titolo"] }}'>
+            <span class='daily-shade'></span>
+          {% else %}
+            <span class='daily-editorial' aria-hidden='true'>
+              <span>Oggi</span>
+              <span>{{ featured['tipo_pasto'] }}</span>
+              <span>{{ featured['ingredienti']|length }} ingredienti</span>
+            </span>
+          {% endif %}
           <span class='daily-label'>La scelta di oggi</span>
           <span class='daily-content'>
             <strong>{{ featured['titolo'] }}</strong>
@@ -102,14 +109,19 @@
 
       <div class='recipe-grid'>
         {% for recipe in recipes %}
-          <a class='recipe-card' href='{{ url_for("recipe_detail", slug=recipe["titolo"]|slugify) }}'>
-            <span class='recipe-media'>
-              <img src='{{ recipe["immagine"] }}' alt='' loading='lazy'>
-              <span class='time-badge'>{{ recipe['tempo_minuti'] }} min</span>
-              <span class='card-open' aria-hidden='true'>↗</span>
-            </span>
+          <a class='recipe-card {{ "has-photo" if recipe["immagine"] else "no-photo" }} tone-{{ loop.index0 % 3 }}' href='{{ url_for("recipe_detail", slug=recipe["titolo"]|slugify) }}'>
+            {% if recipe['immagine'] %}
+              <span class='recipe-media'>
+                <img src='{{ recipe["immagine"] }}' alt='{{ recipe["titolo"] }}' loading='lazy'>
+                <span class='time-badge'>{{ recipe['tempo_minuti'] }} min</span>
+                <span class='card-open' aria-hidden='true'>↗</span>
+              </span>
+            {% endif %}
             <span class='recipe-card-body'>
-              <span class='card-eyebrow'>{{ recipe['tipo_pasto'] }} · {{ recipe['difficolta'] }}</span>
+              <span class='card-eyebrow'>
+                {{ recipe['tipo_pasto'] }} · {{ recipe['difficolta'] }}
+                {% if not recipe['immagine'] %}<b>{{ recipe['tempo_minuti'] }} min</b>{% endif %}
+              </span>
               <strong>{{ recipe['titolo'] }}</strong>
               <span class='recipe-description'>{{ recipe['descrizione'] }}</span>
               <span class='card-footer'>
@@ -118,6 +130,7 @@
                   {% for tag in recipe['tags'][:2] %}<em>#{{ tag }}</em>{% endfor %}
                 </span>
               </span>
+              {% if not recipe['immagine'] %}<span class='editorial-arrow' aria-hidden='true'>Apri la ricetta <i>→</i></span>{% endif %}
             </span>
           </a>
         {% else %}

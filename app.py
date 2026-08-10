@@ -6,8 +6,13 @@ import re
 import unicodedata
 from datetime import date
 from pathlib import Path
+from uuid import uuid4
+from urllib.parse import quote
 from urllib import request as urllib_request
 from urllib.error import HTTPError, URLError
+from werkzeug.datastructures import MultiDict
+from werkzeug.exceptions import RequestEntityTooLarge
+from werkzeug.utils import secure_filename
 
 
 def _to_text_list(value):
@@ -64,42 +69,30 @@ def _slugify(text):
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.jinja_env.filters["slugify"] = _slugify
+app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_FILE = BASE_DIR / "recipes.json"
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "cambiaquesta")
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
-SUPABASE_KEY = os.environ.get("SUPABASE_ANON_KEY") or os.environ.get(
-    "SUPABASE_SERVICE_ROLE_KEY", "")
+SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+SUPABASE_KEY = os.environ.get("SUPABASE_ANON_KEY") or SUPABASE_SERVICE_ROLE_KEY
+SUPABASE_STORAGE_KEY = SUPABASE_SERVICE_ROLE_KEY or SUPABASE_KEY
 SUPABASE_TABLE = os.environ.get("SUPABASE_TABLE", "recipes")
+SUPABASE_STORAGE_BUCKET = os.environ.get("SUPABASE_STORAGE_BUCKET", "recipe-images")
+UPLOAD_DIR = BASE_DIR / "static" / "uploads"
+MAX_IMAGE_BYTES = 8 * 1024 * 1024
+ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp", "avif"}
 
-RECIPE_PRESENTATION = {
-    "Biscotti della longevità": {
-        "immagine": "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&w=1400&q=88",
-        "descrizione": "Un biscotto intenso e naturalmente dolce, pensato per una pausa che sa davvero di buono.",
-    },
-    "Pasta cremosa al branzino e broccoli": {
-        "immagine": "https://images.unsplash.com/photo-1473093295043-cdd812d0e601?auto=format&fit=crop&w=1400&q=88",
-        "descrizione": "Cremosa senza essere pesante, con il branzino che rende speciale anche un pranzo feriale.",
-    },
-    "Rigatoni al ragù di coniglio": {
-        "immagine": "https://images.unsplash.com/photo-1551892374-ecf8754cf8b0?auto=format&fit=crop&w=1400&q=88",
-        "descrizione": "Un ragù lento, profondo e rassicurante per quando hai voglia di cucinare sul serio.",
-    },
-    "Spaghetti integrali all’orata, pomodorini e crema di carote": {
-        "immagine": "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=1400&q=88",
-        "descrizione": "Pesce, pomodorini e una crema luminosa: una cena completa che sembra da ristorante.",
-    },
-    "Polpette di carne e spinaci": {
-        "immagine": "https://images.unsplash.com/photo-1529042410759-befb1204b468?auto=format&fit=crop&w=1400&q=88",
-        "descrizione": "Morbide dentro, dorate fuori e abbastanza pratiche da risolvere la cena di tutti.",
-    },
+RECIPE_DESCRIPTIONS = {
+    "Biscotti della longevità": "Un biscotto intenso e naturalmente dolce, pensato per una pausa che sa davvero di buono.",
+    "Pasta cremosa al branzino e broccoli": "Cremosa senza essere pesante, con il branzino che rende speciale anche un pranzo feriale.",
+    "Rigatoni al ragù di coniglio": "Un ragù lento, profondo e rassicurante per quando hai voglia di cucinare sul serio.",
+    "Spaghetti integrali all’orata, pomodorini e crema di carote": "Pesce, pomodorini e una crema luminosa: un pranzo completo che sembra da ristorante.",
+    "Polpette di carne e spinaci": "Morbide dentro, dorate fuori e abbastanza pratiche da risolvere la cena di tutti.",
 }
 
-DEFAULT_PRESENTATION = {
-    "immagine": "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=1400&q=88",
-    "descrizione": "Una ricetta da tenere a portata di mano quando vuoi portare qualcosa di buono in tavola.",
-}
+DEFAULT_DESCRIPTION = "Una ricetta da tenere a portata di mano quando vuoi portare qualcosa di buono in tavola."
 
 DEFAULT_RECIPES = [
     {
@@ -158,7 +151,7 @@ DEFAULT_RECIPES = [
         "istruzioni": "Fai soffriggere la cipolla e la carota a cubetti piccoli in un filo d'olio. Aggiungi il coniglio già cotto e scarnificato, la curcuma, la polvere d'aglio, il dado e un bicchiere d'acqua. Cuoci a fuoco lento per circa 50 minuti, mescolando di tanto in tanto fino a ottenere un ragù saporito. Nel frattempo cuoci i rigatoni integrali. Scola la pasta, condisci con il ragù e servi caldo.",
         "difficolta": "Media",
         "tempo_minuti": 60,
-        "tipo_pasto": "Cena",
+        "tipo_pasto": "Pranzo",
         "tags": ["pasta", "carne", "comfort food"]
     },
     {
@@ -178,7 +171,7 @@ DEFAULT_RECIPES = [
         "istruzioni": "Lessa le carote fino a renderle molto morbide, poi scolale e frullale con acqua, olio, sale, aglio, un po' di dado in polvere e il lievito nutrizionale fino a ottenere una crema liscia e salsosa. In una padella cuoci i pomodorini con un filo d'olio e uno spicchio d'aglio, quindi aggiungi l'orata e cuocila delicatamente. Nel frattempo cuoci gli spaghetti integrali al dente, scolali e condisci con il sughetto di pomodorini e il pesce. Servi con la crema di carote a fianco o sopra, per un piatto ricco e molto saporito.",
         "difficolta": "Media",
         "tempo_minuti": 35,
-        "tipo_pasto": "Cena",
+        "tipo_pasto": "Pranzo",
         "tags": ["pasta", "pesce", "cremosa", "integrale"]
     },
     {
@@ -204,7 +197,9 @@ DEFAULT_RECIPES = [
 
 def normalize_recipe(raw_recipe):
     title = raw_recipe.get("titolo") or raw_recipe.get("title") or ""
-    presentation = RECIPE_PRESENTATION.get(title, DEFAULT_PRESENTATION)
+    image = str(raw_recipe.get("immagine") or "").strip()
+    if "images.unsplash.com" in image:
+        image = ""
     return {
         "titolo": title,
         "ingredienti": _to_ingredient_map(raw_recipe.get("ingredienti") or raw_recipe.get("ingredients")),
@@ -213,8 +208,8 @@ def normalize_recipe(raw_recipe):
         "tempo_minuti": int(raw_recipe.get("tempo_minuti") or raw_recipe.get("time") or 0),
         "tipo_pasto": raw_recipe.get("tipo_pasto") or raw_recipe.get("meal_type") or "Pranzo",
         "tags": _to_text_list(raw_recipe.get("tags")),
-        "immagine": raw_recipe.get("immagine") or presentation["immagine"],
-        "descrizione": raw_recipe.get("descrizione") or presentation["descrizione"],
+        "immagine": image,
+        "descrizione": raw_recipe.get("descrizione") or RECIPE_DESCRIPTIONS.get(title, DEFAULT_DESCRIPTION),
     }
 
 
@@ -272,7 +267,7 @@ def save_recipes(recipes):
 
 def save_recipe_to_supabase(recipe):
     if not (SUPABASE_URL and SUPABASE_KEY):
-        return
+        return False
     try:
         headers = {
             "apikey": SUPABASE_KEY,
@@ -287,12 +282,125 @@ def save_recipe_to_supabase(recipe):
             method="POST"
         )
         with urllib_request.urlopen(request, timeout=10):
+            return True
+    except (HTTPError, URLError, TimeoutError, ValueError):
+        return False
+
+
+def detect_image_extension(image_data):
+    if image_data.startswith(b"\xff\xd8\xff"):
+        return "jpg"
+    if image_data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "png"
+    if image_data.startswith(b"RIFF") and image_data[8:12] == b"WEBP":
+        return "webp"
+    if len(image_data) >= 12 and image_data[4:8] == b"ftyp" and image_data[8:12] in {b"avif", b"avis"}:
+        return "avif"
+    return ""
+
+
+def save_uploaded_image(image_file, title):
+    if not image_file or not image_file.filename:
+        return "", None
+
+    filename = secure_filename(image_file.filename)
+    extension = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    if extension not in ALLOWED_IMAGE_EXTENSIONS:
+        return "", "La foto deve essere JPG, PNG, WebP o AVIF."
+    if not (image_file.mimetype or "").startswith("image/"):
+        return "", "Il file scelto non sembra essere un’immagine valida."
+
+    image_data = image_file.read(MAX_IMAGE_BYTES + 1)
+    if len(image_data) > MAX_IMAGE_BYTES:
+        return "", "La foto supera 8 MB. Riducila e riprova."
+    detected_extension = detect_image_extension(image_data)
+    comparable_extension = "jpg" if extension == "jpeg" else extension
+    if not detected_extension or detected_extension != comparable_extension:
+        return "", "Il contenuto del file non corrisponde a una foto valida."
+
+    object_name = f"{_slugify(title)}/{uuid4().hex}.{detected_extension}"
+    if SUPABASE_URL and SUPABASE_STORAGE_KEY:
+        encoded_path = "/".join(quote(part, safe="") for part in object_name.split("/"))
+        upload_url = (
+            f"{SUPABASE_URL}/storage/v1/object/"
+            f"{quote(SUPABASE_STORAGE_BUCKET, safe='')}/{encoded_path}"
+        )
+        headers = {
+            "apikey": SUPABASE_STORAGE_KEY,
+            "Authorization": f"Bearer {SUPABASE_STORAGE_KEY}",
+            "Content-Type": image_file.mimetype,
+            "x-upsert": "false",
+        }
+        try:
+            upload_request = urllib_request.Request(
+                upload_url,
+                data=image_data,
+                headers=headers,
+                method="POST",
+            )
+            with urllib_request.urlopen(upload_request, timeout=20):
+                public_url = (
+                    f"{SUPABASE_URL}/storage/v1/object/public/"
+                    f"{quote(SUPABASE_STORAGE_BUCKET, safe='')}/{encoded_path}"
+                )
+                return public_url, None
+        except (HTTPError, URLError, TimeoutError, ValueError):
+            return "", "Non sono riuscito a caricare la foto. Controlla Supabase Storage e riprova."
+
+    if os.environ.get("VERCEL"):
+        return "", "Per caricare foto in produzione devi configurare Supabase Storage."
+
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    local_name = f"{_slugify(title)}-{uuid4().hex}.{extension}"
+    (UPLOAD_DIR / local_name).write_bytes(image_data)
+    return url_for("static", filename=f"uploads/{local_name}"), None
+
+
+def delete_uploaded_image(image_url):
+    public_prefix = (
+        f"{SUPABASE_URL}/storage/v1/object/public/"
+        f"{quote(SUPABASE_STORAGE_BUCKET, safe='')}/"
+    )
+    if not image_url.startswith(public_prefix) or not SUPABASE_STORAGE_KEY:
+        return
+    object_path = image_url.removeprefix(public_prefix)
+    delete_url = (
+        f"{SUPABASE_URL}/storage/v1/object/"
+        f"{quote(SUPABASE_STORAGE_BUCKET, safe='')}/{object_path}"
+    )
+    headers = {
+        "apikey": SUPABASE_STORAGE_KEY,
+        "Authorization": f"Bearer {SUPABASE_STORAGE_KEY}",
+    }
+    try:
+        delete_request = urllib_request.Request(delete_url, headers=headers, method="DELETE")
+        with urllib_request.urlopen(delete_request, timeout=10):
             pass
     except (HTTPError, URLError, TimeoutError, ValueError):
         pass
 
 
+def persist_recipe(recipe, recipes):
+    if SUPABASE_URL and SUPABASE_KEY:
+        return save_recipe_to_supabase(recipe)
+    if os.environ.get("VERCEL"):
+        return False
+    recipes.append(recipe)
+    save_recipes(recipes)
+    return True
+
+
 recipes = load_recipes()
+
+
+@app.errorhandler(RequestEntityTooLarge)
+def handle_oversized_upload(error):
+    return render_template(
+        "add_recipe.html",
+        message="La foto è troppo grande. Il limite massimo è 8 MB.",
+        success=False,
+        form=MultiDict(),
+    ), 413
 
 
 def recipe_matches(recipe, query, difficulty, max_time, meal_type, tag_filter):
@@ -408,12 +516,22 @@ def add_recipe():
             time = request.form.get('time', '0').strip()
             meal_type = request.form.get('meal_type_add', 'Pranzo').strip()
             tags = request.form.get('tags', '').strip()
-            image_url = request.form.get('image_url', '').strip()
 
             if not title or not ingredients or not instructions or not time:
                 message = 'Compila titolo, ingredienti, procedimento e tempo.'
                 success = False
             else:
+                image_url, image_error = save_uploaded_image(
+                    request.files.get('recipe_image'),
+                    title,
+                )
+                if image_error:
+                    return render_template(
+                        "add_recipe.html",
+                        message=image_error,
+                        success=False,
+                        form=request.form,
+                    )
                 recipe = {
                     'titolo': title,
                     'ingredienti': ingredients,
@@ -422,12 +540,13 @@ def add_recipe():
                     'tempo_minuti': int(time),
                     'tipo_pasto': meal_type,
                     'tags': _to_text_list(tags),
-                    'immagine': image_url or DEFAULT_PRESENTATION['immagine'],
+                    'immagine': image_url,
                 }
-                recipes.append(recipe)
-                save_recipes(recipes)
-                save_recipe_to_supabase(recipe)
-                return redirect(url_for('recipe_detail', slug=_slugify(title)))
+                if persist_recipe(recipe, recipes):
+                    return redirect(url_for('recipe_detail', slug=_slugify(title)))
+                delete_uploaded_image(image_url)
+                message = 'Non sono riuscito a salvare la ricetta. Controlla la configurazione Supabase.'
+                success = False
 
     return render_template(
         "add_recipe.html",

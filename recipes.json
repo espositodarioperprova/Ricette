@@ -150,7 +150,7 @@
     "istruzioni": "Fai soffriggere la cipolla e la carota a cubetti piccoli in un filo d'olio. Aggiungi il coniglio già cotto e scarnificato, la curcuma, la polvere d'aglio, il dado e un bicchiere d'acqua. Cuoci a fuoco lento per circa 50 minuti, mescolando di tanto in tanto fino a ottenere un ragù saporito. Nel frattempo cuoci i rigatoni integrali. Scola la pasta, condisci con il ragù e servi caldo.",
     "difficolta": "Media",
     "tempo_minuti": 60,
-    "tipo_pasto": "Cena",
+    "tipo_pasto": "Pranzo",
     "tags": [
       "pasta",
       "carne",
@@ -204,7 +204,7 @@
     "istruzioni": "Lessa le carote fino a renderle molto morbide, poi scolale e frullale con acqua, olio, sale, aglio, un po' di dado in polvere e il lievito nutrizionale fino a ottenere una crema liscia e salsosa. In una padella cuoci i pomodorini con un filo d'olio e uno spicchio d'aglio, quindi aggiungi l'orata e cuocila delicatamente. Nel frattempo cuoci gli spaghetti integrali al dente, scolali e condisci con il sughetto di pomodorini e il pesce. Servi con la crema di carote a fianco o sopra, per un piatto ricco e molto saporito.",
     "difficolta": "Media",
     "tempo_minuti": 35,
-    "tipo_pasto": "Cena",
+    "tipo_pasto": "Pranzo",
     "tags": [
       "pasta",
       "pesce",

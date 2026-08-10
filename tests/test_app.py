@@ -57,6 +57,9 @@ def test_seed_contains_only_curated_recipes():
         'Spaghetti integrali all’orata, pomodorini e crema di carote',
         'Polpette di carne e spinaci'
     }
+    meals_by_title = {recipe['titolo']: recipe['tipo_pasto'] for recipe in recipes}
+    assert meals_by_title['Rigatoni al ragù di coniglio'] == 'Pranzo'
+    assert meals_by_title['Spaghetti integrali all’orata, pomodorini e crema di carote'] == 'Pranzo'
 
 
 def test_recipes_use_array_fields_for_ingredients_and_tags():

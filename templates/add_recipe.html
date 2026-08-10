@@ -28,7 +28,7 @@
       <div class='message {{ "success" if success else "error" }}'>{{ message }}</div>
     {% endif %}
 
-    <form class='recipe-editor' method='post' id='recipe-form'>
+    <form class='recipe-editor' method='post' enctype='multipart/form-data' id='recipe-form'>
       <div class='editor-form'>
         <section class='editor-section'>
           <div class='section-marker'>01</div>
@@ -40,10 +40,16 @@
             <span>Nome della ricetta</span>
             <input id='title' type='text' name='title' value='{{ form.get("title", "") }}' placeholder='Es. Polpette di carne e spinaci' required>
           </label>
-          <label class='field field-wide cover-field'>
-            <span>Foto di copertina <small>opzionale, incolla un URL</small></span>
-            <input id='image-url' type='url' name='image_url' value='{{ form.get("image_url", "") }}' placeholder='https://…'>
-          </label>
+          <div class='field field-wide cover-field'>
+            <span>Foto vera del piatto <small>opzionale · JPG, PNG, WebP o AVIF · max 8 MB</small></span>
+            <label class='photo-uploader' for='recipe-image'>
+              <input id='recipe-image' type='file' name='recipe_image' accept='image/jpeg,image/png,image/webp,image/avif'>
+              <span class='upload-icon' aria-hidden='true'>↑</span>
+              <span class='upload-copy'><strong>Scegli una foto dal dispositivo</strong><small>Nessuna foto? Nessun problema: Tavola userà il layout editoriale.</small></span>
+              <span class='upload-action'>Sfoglia</span>
+            </label>
+            <p class='selected-file' id='selected-file' hidden></p>
+          </div>
           <div class='field-row'>
             <label class='field'>
               <span>Momento</span>
@@ -123,9 +129,14 @@
 
       <aside class='editor-preview'>
         <p class='preview-label'>Anteprima dal vivo</p>
-        <div class='preview-cover'>
-          <img id='preview-image' src='https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=1000&q=80' alt='Anteprima copertina ricetta'>
-          <span>La tua copertina</span>
+        <div class='preview-cover' id='preview-cover' hidden>
+          <img id='preview-image' alt='Anteprima della foto selezionata'>
+          <span>Foto selezionata</span>
+        </div>
+        <div class='preview-no-photo' id='preview-no-photo'>
+          <span>Layout editoriale</span>
+          <strong>Nessuna immagine finta.</strong>
+          <small>Il titolo diventa il protagonista.</small>
         </div>
         <h2 id='preview-title'>La tua prossima ricetta</h2>
         <div class='preview-meta'>
@@ -159,9 +170,6 @@
       document.querySelector('#preview-meal').textContent = document.querySelector('#meal-type').value;
       document.querySelector('#preview-time').textContent = `${document.querySelector('#time').value || '—'} min`;
       document.querySelector('#preview-difficulty').textContent = document.querySelector('#difficulty').value;
-      const imageUrl = document.querySelector('#image-url').value;
-      const previewImage = document.querySelector('#preview-image');
-      previewImage.src = imageUrl || 'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=1000&q=80';
       const previewList = document.querySelector('#preview-list');
       const rows = [...list.querySelectorAll('.ingredient-row')]
         .map(row => ({ quantity: row.children[0].value, name: row.children[1].value }))
@@ -171,15 +179,15 @@
         const emptyItem = document.createElement('li');
         emptyItem.textContent = 'Aggiungi il primo ingrediente';
         previewList.append(emptyItem);
-        return;
+      } else {
+        rows.forEach(item => {
+          const listItem = document.createElement('li');
+          const quantity = document.createElement('strong');
+          quantity.textContent = item.quantity;
+          listItem.append(quantity, ` ${item.name}`);
+          previewList.append(listItem);
+        });
       }
-      rows.forEach(item => {
-        const listItem = document.createElement('li');
-        const quantity = document.createElement('strong');
-        quantity.textContent = item.quantity;
-        listItem.append(quantity, ` ${item.name}`);
-        previewList.append(listItem);
-      });
 
       const hasIdentity = document.querySelector('#title').value && document.querySelector('#time').value;
       const hasIngredients = rows.length > 0;
@@ -204,6 +212,36 @@
     });
     document.querySelector('#recipe-form').addEventListener('input', updatePreview);
     document.querySelector('#recipe-form').addEventListener('change', updatePreview);
+    document.querySelector('#recipe-image').addEventListener('change', event => {
+      const file = event.target.files[0];
+      const previewCover = document.querySelector('#preview-cover');
+      const noPhoto = document.querySelector('#preview-no-photo');
+      const selectedFile = document.querySelector('#selected-file');
+      if (!file) {
+        previewCover.hidden = true;
+        noPhoto.hidden = false;
+        selectedFile.hidden = true;
+        return;
+      }
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
+      if (!allowedTypes.includes(file.type) || file.size > 8 * 1024 * 1024) {
+        event.target.value = '';
+        previewCover.hidden = true;
+        noPhoto.hidden = false;
+        selectedFile.textContent = file.size > 8 * 1024 * 1024
+          ? 'La foto supera 8 MB. Scegline una più leggera.'
+          : 'Formato non supportato. Usa JPG, PNG, WebP o AVIF.';
+        selectedFile.classList.add('error');
+        selectedFile.hidden = false;
+        return;
+      }
+      document.querySelector('#preview-image').src = URL.createObjectURL(file);
+      previewCover.hidden = false;
+      noPhoto.hidden = true;
+      selectedFile.textContent = `${file.name} · ${(file.size / 1024 / 1024).toFixed(1)} MB`;
+      selectedFile.classList.remove('error');
+      selectedFile.hidden = false;
+    });
     updatePreview();
   </script>
 </body>
