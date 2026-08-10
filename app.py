@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, redirect, render_template, request, url_for
 import json
 import os
 import re
@@ -298,8 +298,8 @@ def recipe_detail(slug):
     return render_template("recipe_detail.html", recipe=recipe)
 
 
-@app.route('/', methods=['GET', 'POST'])
-def home():
+@app.route('/aggiungi', methods=['GET', 'POST'])
+def add_recipe():
     message = None
     success = True
     recipes = load_recipes()
@@ -311,7 +311,14 @@ def home():
             success = False
         else:
             title = request.form.get('title', '').strip()
-            ingredients = request.form.get('ingredients', '').strip()
+            ingredient_names = request.form.getlist('ingredient_name[]')
+            ingredient_quantities = request.form.getlist(
+                'ingredient_quantity[]')
+            ingredients = [
+                {"name": name.strip(), "quantity": quantity.strip()}
+                for name, quantity in zip(ingredient_names, ingredient_quantities)
+                if name.strip()
+            ]
             instructions = request.form.get('instructions', '').strip()
             difficulty = request.form.get('difficulty_add', 'Facile').strip()
             time = request.form.get('time', '0').strip()
@@ -324,7 +331,7 @@ def home():
             else:
                 recipe = {
                     'titolo': title,
-                    'ingredienti': _to_ingredient_map(ingredients),
+                    'ingredienti': ingredients,
                     'istruzioni': instructions,
                     'difficolta': difficulty,
                     'tempo_minuti': int(time),
@@ -334,25 +341,32 @@ def home():
                 recipes.append(recipe)
                 save_recipes(recipes)
                 save_recipe_to_supabase(recipe)
-                message = 'Ricetta aggiunta con successo.'
+                return redirect(url_for('recipe_detail', slug=_slugify(title)))
 
-    query = request.args.get('q', '').strip(
-    ) or request.form.get('q', '').strip()
-    difficulty = request.args.get('difficulty', '').strip(
-    ) or request.form.get('difficulty', '').strip()
-    max_time = request.args.get('max_time', '').strip(
-    ) or request.form.get('max_time', '').strip()
-    meal_type = request.args.get('meal_type', '').strip(
-    ) or request.form.get('meal_type', '').strip()
-    tag_filter = request.args.get('tag', '').strip(
-    ) or request.form.get('tag', '').strip()
+    return render_template(
+        "add_recipe.html",
+        message=message,
+        success=success,
+        form=request.form,
+    )
+
+
+@app.route('/', methods=['GET'])
+def home():
+    recipes = load_recipes()
+
+    query = request.args.get('q', '').strip()
+    difficulty = request.args.get('difficulty', '').strip()
+    max_time = request.args.get('max_time', '').strip()
+    meal_type = request.args.get('meal_type', '').strip()
+    tag_filter = request.args.get('tag', '').strip()
 
     filtered_recipes = [
         recipe for recipe in recipes
         if recipe_matches(recipe, query, difficulty, max_time, meal_type, tag_filter)
     ]
 
-    return build_page(filtered_recipes, query, difficulty, max_time, meal_type, tag_filter, message, success)
+    return build_page(filtered_recipes, query, difficulty, max_time, meal_type, tag_filter)
 
 
 if __name__ == '__main__':

@@ -1,10 +1,10 @@
-from app import app, load_recipes
-import sys
-from pathlib import Path
+import app as app_module
+import json
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+app = app_module.app
+load_recipes = app_module.load_recipes
 
 
 @pytest.fixture
@@ -20,19 +20,31 @@ def test_home_page_renders(client):
     assert b'Ricettario italiano' in response.data
 
 
-def test_can_add_recipe_with_admin_password(client):
-    response = client.post('/', data={
-        'title': 'Pasta test',
-        'ingredients': 'pasta, pomodoro',
+def test_can_add_recipe_with_structured_ingredients(client, tmp_path, monkeypatch):
+    data_file = tmp_path / 'recipes.json'
+    data_file.write_text(json.dumps(load_recipes()), encoding='utf-8')
+    monkeypatch.setattr(app_module, 'DATA_FILE', data_file)
+    monkeypatch.setattr(app_module, 'SUPABASE_URL', '')
+
+    response = client.post('/aggiungi', data={
+        'title': 'Pasta della prova',
+        'ingredient_quantity[]': ['200 g', '150 g'],
+        'ingredient_name[]': ['pasta', 'pomodoro'],
         'instructions': 'Cuoci tutto',
         'difficulty_add': 'Facile',
         'time': '15',
         'meal_type_add': 'Pranzo',
-        'tags': 'test, veloce',
+        'tags': 'veloce',
         'password': 'cambiaquesta'
-    })
+    }, follow_redirects=True)
+
     assert response.status_code == 200
-    assert b'Ricetta aggiunta con successo.' in response.data
+    assert b'Pasta della prova' in response.data
+    saved_recipe = json.loads(data_file.read_text(encoding='utf-8'))[-1]
+    assert saved_recipe['ingredienti'] == [
+        {'name': 'pasta', 'quantity': '200 g'},
+        {'name': 'pomodoro', 'quantity': '150 g'},
+    ]
 
 
 def test_seed_contains_only_curated_recipes():

@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang='it'>
+<head>
+  <meta charset='utf-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1'>
+  <title>Nuova ricetta · Ricettario italiano</title>
+  <link rel='stylesheet' href='{{ url_for("static", filename="styles.css") }}'>
+</head>
+<body class='editor-page'>
+  <header class='editor-nav'>
+    <a class='back-link' href='{{ url_for("home") }}'>← Torna alle ricette</a>
+    <div class='editor-progress' aria-label='Avanzamento ricetta'>
+      <span class='active'>1</span><i></i><span>2</span><i></i><span>3</span>
+    </div>
+    <span class='editor-nav-label'>Nuova ricetta</span>
+    <button class='mobile-publish' type='submit' form='recipe-form'>Salva</button>
+  </header>
+
+  <main class='editor-shell'>
+    <section class='editor-intro'>
+      <p class='eyebrow'>Il tuo quaderno digitale</p>
+      <h1>Mettiamo questa ricetta nero su bianco.</h1>
+      <p>Inserisci ogni ingrediente su una riga: quantità e nome resteranno ordinati, leggibili e facili da consultare mentre cucini.</p>
+    </section>
+
+    {% if message %}
+      <div class='message {{ "success" if success else "error" }}'>{{ message }}</div>
+    {% endif %}
+
+    <form class='recipe-editor' method='post' id='recipe-form'>
+      <div class='editor-form'>
+        <section class='editor-section'>
+          <div class='section-marker'>01</div>
+          <div class='section-heading'>
+            <h2>L’identità del piatto</h2>
+            <p>Un titolo chiaro e le informazioni che servono per decidere.</p>
+          </div>
+          <label class='field field-wide'>
+            <span>Nome della ricetta</span>
+            <input id='title' type='text' name='title' value='{{ form.get("title", "") }}' placeholder='Es. Polpette di carne e spinaci' required>
+          </label>
+          <div class='field-row'>
+            <label class='field'>
+              <span>Momento</span>
+              <select name='meal_type_add' id='meal-type'>
+                {% set selected_meal = form.get('meal_type_add', 'Cena') %}
+                <option value='Colazione' {{ 'selected' if selected_meal == 'Colazione' else '' }}>Colazione</option>
+                <option value='Pranzo' {{ 'selected' if selected_meal == 'Pranzo' else '' }}>Pranzo</option>
+                <option value='Cena' {{ 'selected' if selected_meal == 'Cena' else '' }}>Cena</option>
+                <option value='Spuntino' {{ 'selected' if selected_meal == 'Spuntino' else '' }}>Spuntino</option>
+              </select>
+            </label>
+            <label class='field'>
+              <span>Tempo totale</span>
+              <div class='input-suffix'><input id='time' type='number' name='time' value='{{ form.get("time", "") }}' min='1' placeholder='30' required><span>min</span></div>
+            </label>
+            <label class='field'>
+              <span>Difficoltà</span>
+              <select name='difficulty_add' id='difficulty'>
+                {% set selected_difficulty = form.get('difficulty_add', 'Facile') %}
+                <option value='Facile' {{ 'selected' if selected_difficulty == 'Facile' else '' }}>Facile</option>
+                <option value='Media' {{ 'selected' if selected_difficulty == 'Media' else '' }}>Media</option>
+                <option value='Difficile' {{ 'selected' if selected_difficulty == 'Difficile' else '' }}>Difficile</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section class='editor-section'>
+          <div class='section-marker'>02</div>
+          <div class='section-heading'>
+            <h2>Ingredienti, uno alla volta</h2>
+            <p>Separa la quantità dal nome: il risultato sarà molto più utile in cucina.</p>
+          </div>
+          <div class='ingredient-labels'><span>Quantità</span><span>Ingrediente</span><span></span></div>
+          <div id='ingredient-list' class='ingredient-list'>
+            {% set ingredient_names = form.getlist('ingredient_name[]') %}
+            {% set ingredient_quantities = form.getlist('ingredient_quantity[]') %}
+            {% if ingredient_names %}
+              {% for name in ingredient_names %}
+                <div class='ingredient-row'>
+                  <input type='text' name='ingredient_quantity[]' value='{{ ingredient_quantities[loop.index0] if loop.index0 < ingredient_quantities|length else "" }}' placeholder='500 g'>
+                  <input type='text' name='ingredient_name[]' value='{{ name }}' placeholder='Macinato misto' required>
+                  <button class='remove-ingredient' type='button' aria-label='Rimuovi ingrediente' title='Rimuovi ingrediente'>×</button>
+                </div>
+              {% endfor %}
+            {% else %}
+              <div class='ingredient-row'>
+                <input type='text' name='ingredient_quantity[]' placeholder='500 g'>
+                <input type='text' name='ingredient_name[]' placeholder='Macinato misto' required>
+                <button class='remove-ingredient' type='button' aria-label='Rimuovi ingrediente' title='Rimuovi ingrediente'>×</button>
+              </div>
+            {% endif %}
+          </div>
+          <button class='add-ingredient' id='add-ingredient' type='button'>＋ Aggiungi ingrediente</button>
+        </section>
+
+        <section class='editor-section'>
+          <div class='section-marker'>03</div>
+          <div class='section-heading'>
+            <h2>Come si prepara</h2>
+            <p>Scrivi il procedimento nell’ordine in cui va eseguito.</p>
+          </div>
+          <label class='field field-wide'>
+            <span>Procedimento</span>
+            <textarea id='instructions' name='instructions' rows='8' placeholder='1. Prepara gli ingredienti...&#10;2. Unisci il composto...&#10;3. Cuoci e servi...' required>{{ form.get('instructions', '') }}</textarea>
+          </label>
+          <label class='field field-wide'>
+            <span>Tag <small>separati da virgola</small></span>
+            <input type='text' name='tags' value='{{ form.get("tags", "") }}' placeholder='carne, forno, comfort'>
+          </label>
+          <label class='field field-wide'>
+            <span>Password admin</span>
+            <input type='password' name='password' placeholder='••••••••' required>
+          </label>
+        </section>
+      </div>
+
+      <aside class='editor-preview'>
+        <p class='preview-label'>Anteprima dal vivo</p>
+        <div class='preview-plate' aria-hidden='true'><span>🍽️</span></div>
+        <h2 id='preview-title'>La tua prossima ricetta</h2>
+        <div class='preview-meta'>
+          <span id='preview-meal'>Cena</span>
+          <span id='preview-time'>— min</span>
+          <span id='preview-difficulty'>Facile</span>
+        </div>
+        <div class='preview-ingredients'>
+          <p>Ingredienti</p>
+          <ul id='preview-list'><li>Aggiungi il primo ingrediente</li></ul>
+        </div>
+        <button class='publish-button' type='submit'>Pubblica ricetta <span>→</span></button>
+        <p class='publish-note'>Dopo il salvataggio vedrai subito la scheda completa.</p>
+      </aside>
+    </form>
+  </main>
+
+  <template id='ingredient-template'>
+    <div class='ingredient-row'>
+      <input type='text' name='ingredient_quantity[]' placeholder='q.b.'>
+      <input type='text' name='ingredient_name[]' placeholder='Nome ingrediente' required>
+      <button class='remove-ingredient' type='button' aria-label='Rimuovi ingrediente' title='Rimuovi ingrediente'>×</button>
+    </div>
+  </template>
+  <script>
+    const list = document.querySelector('#ingredient-list');
+    const template = document.querySelector('#ingredient-template');
+
+    function updatePreview() {
+      document.querySelector('#preview-title').textContent = document.querySelector('#title').value || 'La tua prossima ricetta';
+      document.querySelector('#preview-meal').textContent = document.querySelector('#meal-type').value;
+      document.querySelector('#preview-time').textContent = `${document.querySelector('#time').value || '—'} min`;
+      document.querySelector('#preview-difficulty').textContent = document.querySelector('#difficulty').value;
+      const previewList = document.querySelector('#preview-list');
+      const rows = [...list.querySelectorAll('.ingredient-row')]
+        .map(row => ({ quantity: row.children[0].value, name: row.children[1].value }))
+        .filter(item => item.name);
+      previewList.replaceChildren();
+      if (!rows.length) {
+        const emptyItem = document.createElement('li');
+        emptyItem.textContent = 'Aggiungi il primo ingrediente';
+        previewList.append(emptyItem);
+        return;
+      }
+      rows.forEach(item => {
+        const listItem = document.createElement('li');
+        const quantity = document.createElement('strong');
+        quantity.textContent = item.quantity;
+        listItem.append(quantity, ` ${item.name}`);
+        previewList.append(listItem);
+      });
+    }
+
+    document.querySelector('#add-ingredient').addEventListener('click', () => {
+      list.append(template.content.cloneNode(true));
+      list.lastElementChild.children[1].focus();
+      updatePreview();
+    });
+    list.addEventListener('click', event => {
+      if (!event.target.closest('.remove-ingredient') || list.children.length === 1) return;
+      event.target.closest('.ingredient-row').remove();
+      updatePreview();
+    });
+    document.querySelector('#recipe-form').addEventListener('input', updatePreview);
+    document.querySelector('#recipe-form').addEventListener('change', updatePreview);
+    updatePreview();
+  </script>
+</body>
+</html>

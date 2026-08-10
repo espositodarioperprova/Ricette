@@ -14,12 +14,8 @@
         <h1>Ricettario italiano</h1>
         <p class='subtitle'>Cerca, filtra e salva piatti che ti fanno venire voglia di cucinare.</p>
       </div>
-      <div class='hero-badge'>✨ Ogni giorno una nuova idea</div>
+      <a class='hero-action' href='{{ url_for("add_recipe") }}'>＋ Nuova ricetta</a>
     </header>
-
-    {% if message %}
-      <div class='message {{ "success" if success else "error" }}'>{{ message }}</div>
-    {% endif %}
 
     <section class='assistant-panel'>
       <div>
@@ -76,32 +72,11 @@
           </form>
         </section>
 
-        <section class='panel'>
-          <div class='panel-title'>
-            <h2>➕ Aggiungi ricetta</h2>
-            <p>Sei l’admin? Aggiungi con facilità.</p>
-          </div>
-          <form method='post'>
-            <input type='text' name='title' placeholder='Titolo ricetta' required>
-            <textarea name='ingredients' rows='3' placeholder='Ingredienti' required></textarea>
-            <textarea name='instructions' rows='4' placeholder='Procedimento' required></textarea>
-            <select name='difficulty_add'>
-              <option value='Facile'>Facile</option>
-              <option value='Media'>Media</option>
-              <option value='Difficile'>Difficile</option>
-            </select>
-            <input type='number' name='time' min='1' placeholder='Tempo in minuti' required>
-            <select name='meal_type_add'>
-              <option value='Colazione'>Colazione</option>
-              <option value='Pranzo'>Pranzo</option>
-              <option value='Cena'>Cena</option>
-              <option value='Spuntino'>Spuntino</option>
-            </select>
-            <input type='text' name='tags' placeholder='Tag separati da virgola'>
-            <input type='password' name='password' placeholder='Password admin' required>
-            <button type='submit'>Salva ricetta</button>
-          </form>
-        </section>
+        <a class='sidebar-create' href='{{ url_for("add_recipe") }}'>
+          <span class='sidebar-create-icon'>＋</span>
+          <span><strong>Aggiungi una ricetta</strong><small>Editor guidato con ingredienti e quantità</small></span>
+          <span aria-hidden='true'>→</span>
+        </a>
       </aside>
 
       <section class='results-area'>
