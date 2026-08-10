@@ -37,8 +37,8 @@ Il prodotto è già forte nel tratto **decidi → consulta → cucina**. Le evol
 - Flask e Jinja come stack server-side leggero.
 - Supabase PostgreSQL come fonte persistente di produzione.
 - Supabase Storage per fotografie vere e pubbliche.
-- Fallback locale su `recipes.json` e `static/uploads` in sviluppo.
-- Cinque ricette curate con ingredienti strutturati come `{name, quantity}`.
+- Supabase come unica fonte delle ricette in sviluppo e produzione.
+- Sette ricette curate con ingredienti strutturati come `{name, quantity}`.
 - Home decision-first, ricerca testuale e filtri.
 - Suggerimento casuale filtrabile per alcuni stati d'animo.
 - Scheda completa con checklist ingredienti e passaggi.
@@ -204,7 +204,7 @@ Le stime assumono una persona che conosce la codebase, includendo migrazione, UI
 
 ## A6. Descrizione modificabile e note editoriali
 
-**Problema.** Le descrizioni delle cinque ricette sono hardcoded in Python; le nuove ricevono un testo generico.
+**Problema.** Le descrizioni devono restare concise e coerenti anche quando il catalogo cresce.
 
 **Esperienza.** L'autore inserisce una descrizione breve, cosa rende speciale il piatto e quando conviene cucinarlo.
 

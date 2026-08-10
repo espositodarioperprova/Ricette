@@ -1,33 +1,80 @@
 import app as app_module
-import json
 
 import pytest
 
 app = app_module.app
-load_recipes = app_module.load_recipes
+
+SAMPLE_RECIPES = [
+    {
+        "titolo": "Bocconcini di tacchino in crema",
+        "ingredienti": [
+            {"name": "bocconcini di tacchino", "quantity": "500 g"},
+            {"name": "acqua", "quantity": "1 bicchiere abbondante"},
+        ],
+        "istruzioni": "Cuoci lentamente. Completa con il lievito nutrizionale.",
+        "difficolta": "Facile",
+        "tempo_minuti": 70,
+        "tipo_pasto": "Cena",
+        "tags": ["carne", "cremosa"],
+        "immagine": "",
+        "descrizione": "Tacchino tenero e cremoso.",
+    },
+    {
+        "titolo": "Carciofi al gratin",
+        "ingredienti": [
+            {"name": "cuori di carciofo surgelati", "quantity": "250 g"},
+        ],
+        "istruzioni": "Cuoci dolcemente. Completa con il lievito nutrizionale.",
+        "difficolta": "Facile",
+        "tempo_minuti": 40,
+        "tipo_pasto": "Cena",
+        "tags": ["contorno", "verdure"],
+        "immagine": "",
+        "descrizione": "Carciofi teneri e dorati.",
+    },
+]
 
 
 @pytest.fixture
 def client():
     app.config['TESTING'] = True
-    with app.test_client() as client:
-        yield client
+    with app.test_client() as test_client:
+        yield test_client
 
 
-def test_home_page_renders(client):
+def test_home_page_renders_supabase_recipes(client, monkeypatch):
+    monkeypatch.setattr(app_module, 'load_recipes', lambda: SAMPLE_RECIPES)
+
     response = client.get('/')
+
     assert response.status_code == 200
     assert b'Tavola' in response.data
+    assert b'Bocconcini di tacchino in crema' in response.data
+    assert b'Carciofi al gratin' in response.data
 
 
-def test_can_add_recipe_with_structured_ingredients(client, tmp_path, monkeypatch):
-    data_file = tmp_path / 'recipes.json'
-    data_file.write_text(json.dumps(load_recipes()), encoding='utf-8')
-    monkeypatch.setattr(app_module, 'DATA_FILE', data_file)
+def test_home_returns_503_without_supabase(client, monkeypatch):
     monkeypatch.setattr(app_module, 'SUPABASE_URL', '')
+    monkeypatch.setattr(app_module, 'SUPABASE_KEY', '')
+
+    response = client.get('/')
+
+    assert response.status_code == 503
+    assert b'Supabase' in response.data
+
+
+def test_can_add_recipe_with_structured_ingredients(client, monkeypatch):
+    saved = []
+    monkeypatch.setattr(app_module, 'load_recipes', lambda: SAMPLE_RECIPES)
+    monkeypatch.setattr(
+        app_module,
+        'persist_recipe',
+        lambda recipe: saved.append(recipe) or True,
+    )
 
     response = client.post('/aggiungi', data={
         'title': 'Pasta della prova',
+        'description': 'Una pasta creata per verificare il salvataggio.',
         'ingredient_quantity[]': ['200 g', '150 g'],
         'ingredient_name[]': ['pasta', 'pomodoro'],
         'instructions': 'Cuoci tutto',
@@ -36,41 +83,28 @@ def test_can_add_recipe_with_structured_ingredients(client, tmp_path, monkeypatc
         'meal_type_add': 'Pranzo',
         'tags': 'veloce',
         'password': 'cambiaquesta'
-    }, follow_redirects=True)
+    })
 
-    assert response.status_code == 200
-    assert b'Pasta della prova' in response.data
-    saved_recipe = json.loads(data_file.read_text(encoding='utf-8'))[-1]
-    assert saved_recipe['ingredienti'] == [
+    assert response.status_code == 302
+    assert saved[0]['ingredienti'] == [
         {'name': 'pasta', 'quantity': '200 g'},
         {'name': 'pomodoro', 'quantity': '150 g'},
     ]
+    assert saved[0]['descrizione'] == 'Una pasta creata per verificare il salvataggio.'
 
 
-def test_seed_contains_only_curated_recipes():
-    recipes = load_recipes()
-    assert len(recipes) == 5
-    assert {recipe['titolo'] for recipe in recipes} == {
-        'Biscotti della longevità',
-        'Pasta cremosa al branzino e broccoli',
-        'Rigatoni al ragù di coniglio',
-        'Spaghetti integrali all’orata, pomodorini e crema di carote',
-        'Polpette di carne e spinaci'
-    }
-    meals_by_title = {recipe['titolo']: recipe['tipo_pasto']
-                      for recipe in recipes}
-    assert meals_by_title['Rigatoni al ragù di coniglio'] == 'Pranzo'
-    assert meals_by_title['Spaghetti integrali all’orata, pomodorini e crema di carote'] == 'Pranzo'
+def test_normalize_recipe_uses_only_supabase_fields():
+    recipe = app_module.normalize_recipe({
+        'titolo': 'Ricetta remota',
+        'ingredienti': [{'name': 'ingrediente', 'quantity': '1'}],
+        'istruzioni': 'Procedimento remoto.',
+        'difficolta': 'Media',
+        'tempo_minuti': 25,
+        'tipo_pasto': 'Cena',
+        'tags': ['remota'],
+        'immagine': '',
+        'descrizione': 'Descrizione modificata direttamente in Supabase.',
+    })
 
-    recipes_with_photos = [recipe for recipe in recipes if recipe['immagine']]
-    assert len(recipes_with_photos) == 1
-    assert recipes_with_photos[0]['titolo'] == 'Pasta cremosa al branzino e broccoli'
-    assert recipes_with_photos[0]['immagine'].endswith(
-        '/pasta-cremosa-al-branzino-e-broccoli/crema_di_broccolo.png'
-    )
-
-
-def test_recipes_use_array_fields_for_ingredients_and_tags():
-    recipes = load_recipes()
-    assert any(isinstance(recipe['ingredienti'], list) for recipe in recipes)
-    assert any(isinstance(recipe['tags'], list) for recipe in recipes)
+    assert recipe['descrizione'] == 'Descrizione modificata direttamente in Supabase.'
+    assert recipe['ingredienti'] == [{'name': 'ingrediente', 'quantity': '1'}]

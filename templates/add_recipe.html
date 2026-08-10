@@ -40,6 +40,10 @@
             <span>Nome della ricetta</span>
             <input id='title' type='text' name='title' value='{{ form.get("title", "") }}' placeholder='Es. Polpette di carne e spinaci' required>
           </label>
+          <label class='field field-wide'>
+            <span>Descrizione breve</span>
+            <textarea id='description' name='description' rows='3' placeholder='Che cosa rende speciale questo piatto?' required>{{ form.get('description', '') }}</textarea>
+          </label>
           <div class='field field-wide cover-field'>
             <span>Foto vera del piatto <small>opzionale · JPG, PNG, WebP o AVIF · max 8 MB</small></span>
             <label class='photo-uploader' for='recipe-image'>
@@ -189,7 +193,7 @@
         });
       }
 
-      const hasIdentity = document.querySelector('#title').value && document.querySelector('#time').value;
+      const hasIdentity = document.querySelector('#title').value && document.querySelector('#description').value.trim() && document.querySelector('#time').value;
       const hasIngredients = rows.length > 0;
       const hasMethod = document.querySelector('#instructions').value.trim().length > 0;
       const completed = [hasIdentity, hasIngredients, hasMethod];

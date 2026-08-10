@@ -5,7 +5,6 @@ import random
 import re
 import unicodedata
 from datetime import date
-from pathlib import Path
 from uuid import uuid4
 from urllib.parse import quote
 from urllib import request as urllib_request
@@ -72,8 +71,6 @@ app = Flask(__name__, template_folder="templates", static_folder="static")
 app.jinja_env.filters["slugify"] = _slugify
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
 
-BASE_DIR = Path(__file__).resolve().parent
-DATA_FILE = BASE_DIR / "recipes.json"
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "cambiaquesta")
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
@@ -82,123 +79,12 @@ SUPABASE_STORAGE_KEY = SUPABASE_SERVICE_ROLE_KEY or SUPABASE_KEY
 SUPABASE_TABLE = os.environ.get("SUPABASE_TABLE", "recipes")
 SUPABASE_STORAGE_BUCKET = os.environ.get(
     "SUPABASE_STORAGE_BUCKET", "recipe-images")
-UPLOAD_DIR = BASE_DIR / "static" / "uploads"
 MAX_IMAGE_BYTES = 8 * 1024 * 1024
 ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp", "avif"}
-LOCAL_PASTA_CREMOSA_IMAGE_URL = (
-    "/static/pasta-cremosa-al-branzino-e-broccoli/crema_di_broccolo.png"
-)
 
-RECIPE_DESCRIPTIONS = {
-    "Biscotti della longevità": "Un biscotto intenso e naturalmente dolce, pensato per una pausa che sa davvero di buono.",
-    "Pasta cremosa al branzino e broccoli": "Cremosa senza essere pesante, con il branzino che rende speciale anche un pranzo feriale.",
-    "Rigatoni al ragù di coniglio": "Un ragù lento, profondo e rassicurante per quando hai voglia di cucinare sul serio.",
-    "Spaghetti integrali all’orata, pomodorini e crema di carote": "Pesce, pomodorini e una crema luminosa: un pranzo completo che sembra da ristorante.",
-    "Polpette di carne e spinaci": "Morbide dentro, dorate fuori e abbastanza pratiche da risolvere la cena di tutti.",
-}
 
-DEFAULT_DESCRIPTION = "Una ricetta da tenere a portata di mano quando vuoi portare qualcosa di buono in tavola."
-
-DEFAULT_RECIPES = [
-    {
-        "titolo": "Biscotti della longevità",
-        "ingredienti": [
-            {"name": "100 g di okara di macadamia", "quantity": ""},
-            {"name": "1 cucchiaio abbondante di olio evo", "quantity": ""},
-            {"name": "1 bustina di vanillina", "quantity": ""},
-            {"name": "3 datteri", "quantity": ""},
-            {"name": "1 cucchiaio di semi di chia", "quantity": ""},
-            {"name": "2 cucchiaini di cacao", "quantity": ""},
-            {"name": "1 uovo", "quantity": ""},
-            {"name": "2 cucchiai o più di fiocchi d'avena", "quantity": ""}
-        ],
-        "istruzioni": "Frulla l'okara di macadamia con l'olio, la vanillina, i datteri, i semi di chia, il cacao e l'uovo fino a ottenere un impasto omogeneo. Aggiungi gli fiocchi d'avena fino a raggiungere una consistenza abbastanza soda da poter formare dei biscotti. Forma delle palline o piccoli biscotti, disponili su una teglia e cuoci a 180 °C per 12-15 minuti, fino a dorare leggermente.",
-        "difficolta": "Facile",
-        "tempo_minuti": 20,
-        "tipo_pasto": "Spuntino",
-        "tags": ["dolce", "snack", "longevità"]
-    },
-    {
-        "titolo": "Pasta cremosa al branzino e broccoli",
-        "ingredienti": [
-            {"name": "mezzo chilo di pasta integrale", "quantity": ""},
-            {"name": "broccoli al vapore", "quantity": ""},
-            {"name": "sale", "quantity": ""},
-            {"name": "1 cucchiaio di lievito nutrizionale", "quantity": ""},
-            {"name": "acqua", "quantity": ""},
-            {"name": "mezzo limone", "quantity": ""},
-            {"name": "2 cucchiai di olio evo", "quantity": ""},
-            {"name": "1 cucchiaio scarso di burro di anacardi", "quantity": ""},
-            {"name": "250 g di filetti di branzino cotti", "quantity": ""},
-            {"name": "1 spicchio d'aglio", "quantity": ""},
-            {"name": "olio per cuocere il pesce", "quantity": ""}
-        ],
-        "istruzioni": "Lessa i broccoli al vapore fino a renderli morbidi, poi scolali e frullali con sale, lievito nutrizionale, acqua, mezzo limone, olio evo e il burro di anacardi fino ad ottenere una crema liscia. In una padella cuoci il branzino con un filo d'olio e uno spicchio d'aglio, poi sfilacciarlo o lasciarlo a pezzetti. Cuoci la pasta integrale, scolala al dente e condisci con la crema di broccoli. Aggiungi il branzino a cima e servi subito.",
-        "difficolta": "Media",
-        "tempo_minuti": 35,
-        "tipo_pasto": "Pranzo",
-        "tags": ["pasta", "pesce", "cremosa"],
-        "immagine": LOCAL_PASTA_CREMOSA_IMAGE_URL
-    },
-    {
-        "titolo": "Rigatoni al ragù di coniglio",
-        "ingredienti": [
-            {"name": "1 coscia di coniglio già cotta e scarnificata", "quantity": ""},
-            {"name": "200 g di rigatoni integrali", "quantity": ""},
-            {"name": "1 cipolla piccola", "quantity": ""},
-            {"name": "1 carota piccola", "quantity": ""},
-            {"name": "mezzo cucchiaino scarso di curcuma", "quantity": ""},
-            {"name": "polvere d'aglio", "quantity": ""},
-            {"name": "mezzo dado", "quantity": ""},
-            {"name": "sale", "quantity": ""},
-            {"name": "olio", "quantity": ""},
-            {"name": "1 bicchiere d'acqua", "quantity": ""}
-        ],
-        "istruzioni": "Fai soffriggere la cipolla e la carota a cubetti piccoli in un filo d'olio. Aggiungi il coniglio già cotto e scarnificato, la curcuma, la polvere d'aglio, il dado e un bicchiere d'acqua. Cuoci a fuoco lento per circa 50 minuti, mescolando di tanto in tanto fino a ottenere un ragù saporito. Nel frattempo cuoci i rigatoni integrali. Scola la pasta, condisci con il ragù e servi caldo.",
-        "difficolta": "Media",
-        "tempo_minuti": 60,
-        "tipo_pasto": "Pranzo",
-        "tags": ["pasta", "carne", "comfort food"]
-    },
-    {
-        "titolo": "Spaghetti integrali all’orata, pomodorini e crema di carote",
-        "ingredienti": [
-            {"name": "500 g di spaghetti integrali", "quantity": ""},
-            {"name": "250 g di filetti d'orata", "quantity": ""},
-            {"name": "400 g di pomodorini", "quantity": ""},
-            {"name": "2 carote molto ben lessate", "quantity": ""},
-            {"name": "acqua", "quantity": ""},
-            {"name": "olio evo", "quantity": ""},
-            {"name": "sale", "quantity": ""},
-            {"name": "aglio", "quantity": ""},
-            {"name": "poco dado in polvere", "quantity": ""},
-            {"name": "2-3 cucchiaioni pieni di lievito nutrizionale", "quantity": ""}
-        ],
-        "istruzioni": "Lessa le carote fino a renderle molto morbide, poi scolale e frullale con acqua, olio, sale, aglio, un po' di dado in polvere e il lievito nutrizionale fino a ottenere una crema liscia e salsosa. In una padella cuoci i pomodorini con un filo d'olio e uno spicchio d'aglio, quindi aggiungi l'orata e cuocila delicatamente. Nel frattempo cuoci gli spaghetti integrali al dente, scolali e condisci con il sughetto di pomodorini e il pesce. Servi con la crema di carote a fianco o sopra, per un piatto ricco e molto saporito.",
-        "difficolta": "Media",
-        "tempo_minuti": 35,
-        "tipo_pasto": "Pranzo",
-        "tags": ["pasta", "pesce", "cremosa", "integrale"]
-    },
-    {
-        "titolo": "Polpette di carne e spinaci",
-        "ingredienti": [
-            {"name": "500 g di macinato misto", "quantity": ""},
-            {"name": "250 g di spinaci surgelati", "quantity": ""},
-            {"name": "2 uova", "quantity": ""},
-            {"name": "pangrattato", "quantity": ""},
-            {"name": "3 cucchiai di latte", "quantity": ""},
-            {"name": "aglio", "quantity": ""},
-            {"name": "sale", "quantity": ""},
-            {"name": "curcuma", "quantity": ""}
-        ],
-        "istruzioni": "Lessa gli spinaci surgelati, strizzali bene e tritali grossolanamente. In una ciotola mescola il macinato, gli spinaci, le uova, il pangrattato, il latte, l'aglio, il sale e un pizzico di curcuma fino a ottenere un composto compatto. Forma le polpette, sistemale su una teglia e cuoci in forno a 180-200 °C per 20-25 minuti, fino a dorare bene.",
-        "difficolta": "Media",
-        "tempo_minuti": 30,
-        "tipo_pasto": "Cena",
-        "tags": ["carne", "comfort", "forno"]
-    }
-]
+class RecipeStoreError(RuntimeError):
+    pass
 
 
 def normalize_recipe(raw_recipe):
@@ -215,7 +101,7 @@ def normalize_recipe(raw_recipe):
         "tipo_pasto": raw_recipe.get("tipo_pasto") or raw_recipe.get("meal_type") or "Pranzo",
         "tags": _to_text_list(raw_recipe.get("tags")),
         "immagine": image,
-        "descrizione": raw_recipe.get("descrizione") or RECIPE_DESCRIPTIONS.get(title, DEFAULT_DESCRIPTION),
+        "descrizione": raw_recipe.get("descrizione") or "",
     }
 
 
@@ -230,45 +116,33 @@ def is_valid_recipe(recipe):
 
 
 def load_recipes():
-    if SUPABASE_URL and SUPABASE_KEY:
-        try:
-            headers = {
-                "apikey": SUPABASE_KEY,
-                "Authorization": f"Bearer {SUPABASE_KEY}",
-                "Content-Type": "application/json"
-            }
-            request = urllib_request.Request(
-                f"{SUPABASE_URL}/rest/v1/{SUPABASE_TABLE}?select=*",
-                headers=headers,
-                method="GET"
-            )
-            with urllib_request.urlopen(request, timeout=10) as response:
-                data = json.load(response)
-                if isinstance(data, list):
-                    cleaned = [normalize_recipe(
-                        item) for item in data if is_valid_recipe(normalize_recipe(item))]
-                    if cleaned:
-                        return cleaned
-        except (HTTPError, URLError, TimeoutError, ValueError):
-            pass
-
-    if DATA_FILE.exists():
-        try:
-            data = json.loads(DATA_FILE.read_text(encoding='utf-8'))
-            if isinstance(data, list) and data:
-                cleaned = [normalize_recipe(
-                    item) for item in data if is_valid_recipe(normalize_recipe(item))]
-                if cleaned:
-                    return cleaned
-        except json.JSONDecodeError:
-            pass
-
-    return [normalize_recipe(recipe) for recipe in DEFAULT_RECIPES]
-
-
-def save_recipes(recipes):
-    DATA_FILE.write_text(json.dumps(
-        recipes, ensure_ascii=False, indent=2), encoding='utf-8')
+    if not (SUPABASE_URL and SUPABASE_KEY):
+        raise RecipeStoreError("Supabase non è configurato.")
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json"
+    }
+    request = urllib_request.Request(
+        f"{SUPABASE_URL}/rest/v1/{SUPABASE_TABLE}?select=*",
+        headers=headers,
+        method="GET"
+    )
+    try:
+        with urllib_request.urlopen(request, timeout=10) as response:
+            data = json.load(response)
+    except (HTTPError, URLError, TimeoutError, ValueError) as error:
+        raise RecipeStoreError(
+            "Non è stato possibile leggere le ricette da Supabase."
+        ) from error
+    if not isinstance(data, list):
+        raise RecipeStoreError(
+            "Supabase ha restituito una risposta non valida.")
+    return [
+        recipe
+        for item in data
+        if is_valid_recipe(recipe := normalize_recipe(item))
+    ]
 
 
 def save_recipe_to_supabase(recipe):
@@ -354,13 +228,7 @@ def save_uploaded_image(image_file, title):
         except (HTTPError, URLError, TimeoutError, ValueError):
             return "", "Non sono riuscito a caricare la foto. Controlla Supabase Storage e riprova."
 
-    if os.environ.get("VERCEL"):
-        return "", "Per caricare foto in produzione devi configurare Supabase Storage."
-
-    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-    local_name = f"{_slugify(title)}-{uuid4().hex}.{extension}"
-    (UPLOAD_DIR / local_name).write_bytes(image_data)
-    return url_for("static", filename=f"uploads/{local_name}"), None
+    return "", "Per caricare foto devi configurare Supabase Storage."
 
 
 def delete_uploaded_image(image_url):
@@ -388,17 +256,8 @@ def delete_uploaded_image(image_url):
         pass
 
 
-def persist_recipe(recipe, recipes):
-    if SUPABASE_URL and SUPABASE_KEY:
-        return save_recipe_to_supabase(recipe)
-    if os.environ.get("VERCEL"):
-        return False
-    recipes.append(recipe)
-    save_recipes(recipes)
-    return True
-
-
-recipes = load_recipes()
+def persist_recipe(recipe):
+    return save_recipe_to_supabase(recipe)
 
 
 @app.errorhandler(RequestEntityTooLarge)
@@ -409,6 +268,14 @@ def handle_oversized_upload(error):
         success=False,
         form=MultiDict(),
     ), 413
+
+
+@app.errorhandler(RecipeStoreError)
+def handle_recipe_store_error(error):
+    return (
+        "Tavola non riesce a collegarsi a Supabase. Controlla la configurazione del servizio.",
+        503,
+    )
 
 
 def recipe_matches(recipe, query, difficulty, max_time, meal_type, tag_filter):
@@ -513,6 +380,7 @@ def add_recipe():
             success = False
         else:
             title = request.form.get('title', '').strip()
+            description = request.form.get('description', '').strip()
             ingredient_names = request.form.getlist('ingredient_name[]')
             ingredient_quantities = request.form.getlist(
                 'ingredient_quantity[]')
@@ -527,8 +395,8 @@ def add_recipe():
             meal_type = request.form.get('meal_type_add', 'Pranzo').strip()
             tags = request.form.get('tags', '').strip()
 
-            if not title or not ingredients or not instructions or not time:
-                message = 'Compila titolo, ingredienti, procedimento e tempo.'
+            if not title or not description or not ingredients or not instructions or not time:
+                message = 'Compila titolo, descrizione, ingredienti, procedimento e tempo.'
                 success = False
             else:
                 image_url, image_error = save_uploaded_image(
@@ -544,6 +412,7 @@ def add_recipe():
                     )
                 recipe = {
                     'titolo': title,
+                    'descrizione': description,
                     'ingredienti': ingredients,
                     'istruzioni': instructions,
                     'difficolta': difficulty,
@@ -552,7 +421,7 @@ def add_recipe():
                     'tags': _to_text_list(tags),
                     'immagine': image_url,
                 }
-                if persist_recipe(recipe, recipes):
+                if persist_recipe(recipe):
                     return redirect(url_for('recipe_detail', slug=_slugify(title)))
                 delete_uploaded_image(image_url)
                 message = 'Non sono riuscito a salvare la ricetta. Controlla la configurazione Supabase.'

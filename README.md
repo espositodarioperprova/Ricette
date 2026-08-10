@@ -27,7 +27,7 @@ pytest -q
 
 ## Deploy su Vercel
 
-1. Esegui `supabase_seed.sql` nel SQL Editor di Supabase. Lo script normalizza i campi strutturati, inserisce le cinque ricette e crea il bucket pubblico `recipe-images` con limite di 8 MB.
+1. Esegui `supabase_seed.sql` nel SQL Editor di Supabase. Lo script configura in modo non distruttivo la tabella `recipes` e il bucket pubblico `recipe-images` con limite di 8 MB. Non inserisce né sostituisce ricette.
 2. Crea un progetto Vercel collegato a questa cartella.
 3. Imposta le variabili d’ambiente:
    - `ADMIN_PASSWORD`: password per aggiungere ricette
@@ -38,4 +38,4 @@ pytest -q
    - `SUPABASE_STORAGE_BUCKET`: nome del bucket, facoltativo; il valore predefinito è `recipe-images`
 4. Fai un nuovo deploy dopo aver salvato le variabili.
 
-`SUPABASE_SERVICE_ROLE_KEY` deve restare esclusivamente nelle variabili server di Vercel e non deve mai essere inserita nel frontend o nel repository. In sviluppo, senza Supabase configurato, le ricette vengono salvate in `recipes.json` e le foto in `static/uploads`.
+`SUPABASE_SERVICE_ROLE_KEY` deve restare esclusivamente nelle variabili server di Vercel e non deve mai essere inserita nel frontend o nel repository. Supabase è l'unica fonte delle ricette in ogni ambiente: senza `SUPABASE_URL` e una chiave valida, Tavola restituisce un errore `503` invece di mostrare dati locali obsoleti.
