@@ -3,43 +3,121 @@
 <head>
   <meta charset='utf-8'>
   <meta name='viewport' content='width=device-width, initial-scale=1'>
-  <title>{{ recipe['titolo'] }}</title>
+  <meta name='theme-color' content='#123b31'>
+  <title>{{ recipe['titolo'] }} · Tavola</title>
+  <link rel='preconnect' href='https://images.unsplash.com'>
   <link rel='stylesheet' href='{{ url_for("static", filename="styles.css") }}'>
 </head>
-<body>
-  <div class='page-shell'>
-    <a class='back-link' href='{{ url_for("home") }}'>← Torna al ricettario</a>
-    <article class='detail-card'>
-      <h1>{{ recipe['titolo'] }}</h1>
-      <div class='quick-stats'>
-        <span>🕒 {{ recipe['tempo_minuti'] }} min</span>
-        <span>😅 {{ '😅' * (1 if recipe['difficolta'] == 'Facile' else 2 if recipe['difficolta'] == 'Media' else 3) }}</span>
-        <span>🍽️ {{ recipe['tipo_pasto'] }}</span>
+<body class='detail-page' data-recipe-id='{{ recipe["titolo"]|slugify }}'>
+  <header class='site-nav site-nav-overlay'>
+    <a class='brand' href='{{ url_for("home") }}' aria-label='Tavola, homepage'>
+      <span class='brand-mark'>T</span>
+      <span>Tavola</span>
+    </a>
+    <nav aria-label='Navigazione principale'>
+      <a href='{{ url_for("home") }}#ricette'>Ricette</a>
+      <a class='nav-add' href='{{ url_for("add_recipe") }}'><span aria-hidden='true'>＋</span> Nuova ricetta</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class='recipe-hero'>
+      <img src='{{ recipe["immagine"] }}' alt='{{ recipe["titolo"] }}'>
+      <span class='recipe-hero-shade'></span>
+      <a class='hero-back' href='{{ url_for("home") }}#ricette'>← Tutte le ricette</a>
+      <div class='recipe-hero-copy'>
+        <p class='overline'>{{ recipe['tipo_pasto'] }} · {{ recipe['difficolta'] }}</p>
+        <h1>{{ recipe['titolo'] }}</h1>
+        <p>{{ recipe['descrizione'] }}</p>
+        <div class='hero-facts'>
+          <span><strong>{{ recipe['tempo_minuti'] }}</strong> minuti</span>
+          <span><strong>{{ recipe['ingredienti']|length }}</strong> ingredienti</span>
+          <span><strong>{{ steps|length }}</strong> passaggi</span>
+        </div>
       </div>
-      <div class='card-section'>
-        <h4>Ingredienti</h4>
-        <ul>
+    </section>
+
+    <section class='cooking-shell' id='preparazione'>
+      <aside class='ingredients-panel'>
+        <div class='panel-heading'>
+          <p class='overline'>Mise en place</p>
+          <h2>Tutto quello che serve</h2>
+        </div>
+        <div class='check-list ingredient-checks'>
           {% for item in recipe['ingredienti'] %}
-            <li>
-              {% if item.get('quantity') %}
-                <strong>{{ item['quantity'] }}</strong> {{ item['name'] }}
-              {% else %}
+            <label class='check-item'>
+              <input class='task-check' type='checkbox'>
+              <span class='custom-check' aria-hidden='true'></span>
+              <span>
+                {% if item.get('quantity') %}<strong>{{ item['quantity'] }}</strong>{% endif %}
                 {{ item['name'] }}
-              {% endif %}
-            </li>
+              </span>
+            </label>
           {% endfor %}
-        </ul>
-      </div>
-      <div class='card-section'>
-        <h4>Procedimento</h4>
-        <p>{{ recipe['istruzioni'] }}</p>
-      </div>
-      <div class='tags'>
-        {% for tag in recipe['tags'] %}
-          <span class='tag'>#{{ tag }}</span>
-        {% endfor %}
-      </div>
-    </article>
+        </div>
+        <div class='ingredient-actions'>
+          <button class='text-action' type='button' data-print>Stampa</button>
+          <button class='text-action' type='button' data-check-all>Spunta tutto</button>
+        </div>
+      </aside>
+
+      <article class='method-panel'>
+        <div class='method-header'>
+          <div>
+            <p class='overline'>Procedimento</p>
+            <h2>In cucina, un passo alla volta.</h2>
+          </div>
+          <button class='cook-mode-button' type='button' data-cook-mode>
+            <span class='cook-icon' aria-hidden='true'>◉</span>
+            Modalità cucina
+          </button>
+        </div>
+
+        <div class='steps-list'>
+          {% for step in steps %}
+            <label class='cooking-step'>
+              <input class='task-check' type='checkbox'>
+              <span class='step-number'>{{ '%02d'|format(loop.index) }}</span>
+              <span class='step-copy'>{{ step }}</span>
+              <span class='step-done' aria-hidden='true'>✓</span>
+            </label>
+          {% endfor %}
+        </div>
+
+        <div class='recipe-tags'>
+          {% for tag in recipe['tags'] %}<span>#{{ tag }}</span>{% endfor %}
+        </div>
+      </article>
+    </section>
+
+    {% if related %}
+      <section class='related-section'>
+        <div class='section-title-row'>
+          <div>
+            <p class='overline'>Continua a scegliere bene</p>
+            <h2>Potrebbe piacerti anche.</h2>
+          </div>
+          <a href='{{ url_for("home") }}#ricette'>Vedi tutte →</a>
+        </div>
+        <div class='related-grid'>
+          {% for item in related %}
+            <a class='related-card' href='{{ url_for("recipe_detail", slug=item["titolo"]|slugify) }}'>
+              <img src='{{ item["immagine"] }}' alt='' loading='lazy'>
+              <span><small>{{ item['tempo_minuti'] }} min · {{ item['tipo_pasto'] }}</small><strong>{{ item['titolo'] }}</strong></span>
+            </a>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+  </main>
+
+  <div class='cook-dock' data-cook-dock>
+    <button type='button' data-exit-cook aria-label='Esci dalla modalità cucina'>×</button>
+    <span><strong data-progress-label>0%</strong> completato · <i data-wake-status>modalità attiva</i></span>
+    <span class='progress-track'><i data-progress-bar></i></span>
+    <button type='button' data-next-step>Prossimo passo ↓</button>
   </div>
+
+  <script src='{{ url_for("static", filename="site.js") }}'></script>
 </body>
 </html>

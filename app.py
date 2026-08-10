@@ -1,8 +1,10 @@
 from flask import Flask, redirect, render_template, request, url_for
 import json
 import os
+import random
 import re
 import unicodedata
+from datetime import date
 from pathlib import Path
 from urllib import request as urllib_request
 from urllib.error import HTTPError, URLError
@@ -16,6 +18,22 @@ def _to_text_list(value):
     return []
 
 
+def _split_ingredient(text):
+    text = text.strip()
+    quantity_pattern = (
+        r"^(?P<quantity>(?:\d+(?:[.,]\d+)?(?:\s*[-–]\s*\d+)?|mezzo|mezza|un|una)"
+        r"\s*(?:g|gr|kg|ml|l|cucchiai?o?n?i?|cucchiaini?|bicchieri?|bustine?|"
+        r"spicchi?|cosce?|carote?|cipolle?|uova?|datteri?)?)\s+(?:di\s+)?(?P<name>.+)$"
+    )
+    match = re.match(quantity_pattern, text, flags=re.IGNORECASE)
+    if not match:
+        return {"name": text, "quantity": ""}
+    return {
+        "name": match.group("name").strip(),
+        "quantity": match.group("quantity").strip(),
+    }
+
+
 def _to_ingredient_map(value):
     if isinstance(value, list):
         items = []
@@ -26,14 +44,14 @@ def _to_ingredient_map(value):
                 qty = str(item.get("quantity") or item.get(
                     "quantita") or item.get("q") or "").strip()
                 if name:
-                    items.append({"name": name, "quantity": qty})
+                    items.append({"name": name, "quantity": qty} if qty else _split_ingredient(name))
             else:
                 text = str(item).strip()
                 if text:
-                    items.append({"name": text, "quantity": ""})
+                    items.append(_split_ingredient(text))
         return items
     if isinstance(value, str):
-        return [{"name": part.strip(), "quantity": ""} for part in value.split(",") if part.strip()]
+        return [_split_ingredient(part) for part in value.split(",") if part.strip()]
     return []
 
 
@@ -54,6 +72,34 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_KEY = os.environ.get("SUPABASE_ANON_KEY") or os.environ.get(
     "SUPABASE_SERVICE_ROLE_KEY", "")
 SUPABASE_TABLE = os.environ.get("SUPABASE_TABLE", "recipes")
+
+RECIPE_PRESENTATION = {
+    "Biscotti della longevità": {
+        "immagine": "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&w=1400&q=88",
+        "descrizione": "Un biscotto intenso e naturalmente dolce, pensato per una pausa che sa davvero di buono.",
+    },
+    "Pasta cremosa al branzino e broccoli": {
+        "immagine": "https://images.unsplash.com/photo-1473093295043-cdd812d0e601?auto=format&fit=crop&w=1400&q=88",
+        "descrizione": "Cremosa senza essere pesante, con il branzino che rende speciale anche un pranzo feriale.",
+    },
+    "Rigatoni al ragù di coniglio": {
+        "immagine": "https://images.unsplash.com/photo-1551892374-ecf8754cf8b0?auto=format&fit=crop&w=1400&q=88",
+        "descrizione": "Un ragù lento, profondo e rassicurante per quando hai voglia di cucinare sul serio.",
+    },
+    "Spaghetti integrali all’orata, pomodorini e crema di carote": {
+        "immagine": "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=1400&q=88",
+        "descrizione": "Pesce, pomodorini e una crema luminosa: una cena completa che sembra da ristorante.",
+    },
+    "Polpette di carne e spinaci": {
+        "immagine": "https://images.unsplash.com/photo-1529042410759-befb1204b468?auto=format&fit=crop&w=1400&q=88",
+        "descrizione": "Morbide dentro, dorate fuori e abbastanza pratiche da risolvere la cena di tutti.",
+    },
+}
+
+DEFAULT_PRESENTATION = {
+    "immagine": "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=1400&q=88",
+    "descrizione": "Una ricetta da tenere a portata di mano quando vuoi portare qualcosa di buono in tavola.",
+}
 
 DEFAULT_RECIPES = [
     {
@@ -157,14 +203,18 @@ DEFAULT_RECIPES = [
 
 
 def normalize_recipe(raw_recipe):
+    title = raw_recipe.get("titolo") or raw_recipe.get("title") or ""
+    presentation = RECIPE_PRESENTATION.get(title, DEFAULT_PRESENTATION)
     return {
-        "titolo": raw_recipe.get("titolo") or raw_recipe.get("title") or "",
+        "titolo": title,
         "ingredienti": _to_ingredient_map(raw_recipe.get("ingredienti") or raw_recipe.get("ingredients")),
         "istruzioni": raw_recipe.get("istruzioni") or raw_recipe.get("instructions") or "",
         "difficolta": raw_recipe.get("difficolta") or raw_recipe.get("difficulty") or "Facile",
         "tempo_minuti": int(raw_recipe.get("tempo_minuti") or raw_recipe.get("time") or 0),
         "tipo_pasto": raw_recipe.get("tipo_pasto") or raw_recipe.get("meal_type") or "Pranzo",
-        "tags": _to_text_list(raw_recipe.get("tags"))
+        "tags": _to_text_list(raw_recipe.get("tags")),
+        "immagine": raw_recipe.get("immagine") or presentation["immagine"],
+        "descrizione": raw_recipe.get("descrizione") or presentation["descrizione"],
     }
 
 
@@ -212,7 +262,7 @@ def load_recipes():
         except json.JSONDecodeError:
             pass
 
-    return [dict(recipe) for recipe in DEFAULT_RECIPES]
+    return [normalize_recipe(recipe) for recipe in DEFAULT_RECIPES]
 
 
 def save_recipes(recipes):
@@ -274,17 +324,17 @@ def recipe_matches(recipe, query, difficulty, max_time, meal_type, tag_filter):
     return True
 
 
-def build_page(filtered_recipes, query, difficulty, max_time, meal_type, tag_filter, message=None, success=True):
+def build_page(filtered_recipes, all_recipes, query, difficulty, max_time, meal_type, tag_filter):
+    featured = all_recipes[date.today().toordinal() % len(all_recipes)] if all_recipes else None
     return render_template(
         "index.html",
         recipes=filtered_recipes,
+        featured=featured,
         query=query,
         difficulty=difficulty,
         max_time=max_time,
         meal_type=meal_type,
         tag_filter=tag_filter,
-        message=message,
-        success=success,
     )
 
 
@@ -295,7 +345,41 @@ def recipe_detail(slug):
         item['titolo']) == slug.lower()), None)
     if not recipe:
         return "Ricetta non trovata", 404
-    return render_template("recipe_detail.html", recipe=recipe)
+    steps = [
+        step.strip()
+        for step in re.split(r"(?<=[.!?])\s+", recipe["istruzioni"])
+        if step.strip()
+    ]
+    recipe_tags = set(recipe.get("tags", []))
+    related = sorted(
+        (item for item in recipes if item["titolo"] != recipe["titolo"]),
+        key=lambda item: len(recipe_tags.intersection(item.get("tags", []))),
+        reverse=True,
+    )[:3]
+    return render_template(
+        "recipe_detail.html",
+        recipe=recipe,
+        steps=steps,
+        related=related,
+    )
+
+
+@app.route('/suggeriscimi', methods=['GET'])
+def suggest_recipe():
+    recipes = load_recipes()
+    mood = request.args.get('mood', 'sorpresa').strip().lower()
+    if mood == 'veloce':
+        candidates = [recipe for recipe in recipes if recipe['tempo_minuti'] <= 30]
+    elif mood in {'pesce', 'carne', 'pasta', 'comfort'}:
+        candidates = [
+            recipe for recipe in recipes
+            if mood in " ".join(recipe.get('tags', [])).lower()
+            or mood in recipe['titolo'].lower()
+        ]
+    else:
+        candidates = recipes
+    choice = random.choice(candidates or recipes)
+    return redirect(url_for('recipe_detail', slug=_slugify(choice['titolo'])))
 
 
 @app.route('/aggiungi', methods=['GET', 'POST'])
@@ -324,6 +408,7 @@ def add_recipe():
             time = request.form.get('time', '0').strip()
             meal_type = request.form.get('meal_type_add', 'Pranzo').strip()
             tags = request.form.get('tags', '').strip()
+            image_url = request.form.get('image_url', '').strip()
 
             if not title or not ingredients or not instructions or not time:
                 message = 'Compila titolo, ingredienti, procedimento e tempo.'
@@ -336,7 +421,8 @@ def add_recipe():
                     'difficolta': difficulty,
                     'tempo_minuti': int(time),
                     'tipo_pasto': meal_type,
-                    'tags': _to_text_list(tags)
+                    'tags': _to_text_list(tags),
+                    'immagine': image_url or DEFAULT_PRESENTATION['immagine'],
                 }
                 recipes.append(recipe)
                 save_recipes(recipes)
@@ -366,7 +452,15 @@ def home():
         if recipe_matches(recipe, query, difficulty, max_time, meal_type, tag_filter)
     ]
 
-    return build_page(filtered_recipes, query, difficulty, max_time, meal_type, tag_filter)
+    return build_page(
+        filtered_recipes,
+        recipes,
+        query,
+        difficulty,
+        max_time,
+        meal_type,
+        tag_filter,
+    )
 
 
 if __name__ == '__main__':

@@ -3,143 +3,146 @@
 <head>
   <meta charset='utf-8'>
   <meta name='viewport' content='width=device-width, initial-scale=1'>
-  <title>Ricettario italiano</title>
+  <meta name='theme-color' content='#123b31'>
+  <title>Tavola · Cosa mangiamo oggi?</title>
+  <link rel='preconnect' href='https://images.unsplash.com'>
   <link rel='stylesheet' href='{{ url_for("static", filename="styles.css") }}'>
 </head>
-<body>
-  <div class='page-shell'>
-    <header class='hero'>
-      <div>
-        <p class='eyebrow'>Ricette semplici, belle e saporite</p>
-        <h1>Ricettario italiano</h1>
-        <p class='subtitle'>Cerca, filtra e salva piatti che ti fanno venire voglia di cucinare.</p>
-      </div>
-      <a class='hero-action' href='{{ url_for("add_recipe") }}'>＋ Nuova ricetta</a>
-    </header>
+<body class='home-page'>
+  <header class='site-nav'>
+    <a class='brand' href='{{ url_for("home") }}' aria-label='Tavola, homepage'>
+      <span class='brand-mark'>T</span>
+      <span>Tavola</span>
+    </a>
+    <nav aria-label='Navigazione principale'>
+      <a href='#ricette'>Ricette</a>
+      <a class='nav-add' href='{{ url_for("add_recipe") }}'><span aria-hidden='true'>＋</span> Nuova ricetta</a>
+    </nav>
+  </header>
 
-    <section class='assistant-panel'>
-      <div>
-        <p class='assistant-label'>Il tuo assistente cucina</p>
-        <h2>Non sai cosa mangiare?</h2>
-        <p>Ti aiutiamo a scegliere in 10 secondi: veloce, comfort, leggero o elegante.</p>
-      </div>
-      <div class='assistant-actions'>
-        <a class='assistant-link' href='/?q=pasta'>🍝 Pasta</a>
-        <a class='assistant-link' href='/?q=pesce'>🐟 Pesce</a>
-        <a class='assistant-link' href='/?q=carne'>🥩 Carne</a>
-        <a class='assistant-link' href='/?q=veloce'>⚡ Veloce</a>
-      </div>
-    </section>
-
-    <section class='quick-actions'>
-      <a class='chip' href='/?max_time=20'>⚡ Pronto in 20 min</a>
-      <a class='chip' href='/?q=leggero'>🥗 Leggero</a>
-      <a class='chip' href='/?q=pasta'>🍝 Pasta</a>
-      <a class='chip' href='/?q=pesce'>🐟 Pesce</a>
-      <a class='chip' href='/?q=comfort'>🧑‍🍳 Comfort</a>
-    </section>
-
-    <div class='content-grid'>
-      <aside class='sidebar'>
-        <section class='panel'>
-          <div class='panel-title'>
-            <h2>🔎 Cerca ricette</h2>
-            <p>Trova il piatto giusto per il momento giusto.</p>
-          </div>
-          <form method='get'>
-            <input type='text' name='q' value='{{ query }}' placeholder='Cerca per nome, ingrediente o tag'>
-            <select name='difficulty'>
-              <option value=''>Difficoltà</option>
-              <option value='Facile' {{ 'selected' if difficulty == 'Facile' else '' }}>Facile</option>
-              <option value='Media' {{ 'selected' if difficulty == 'Media' else '' }}>Media</option>
-              <option value='Difficile' {{ 'selected' if difficulty == 'Difficile' else '' }}>Difficile</option>
-            </select>
-            <select name='max_time'>
-              <option value=''>Tempo massimo</option>
-              <option value='15' {{ 'selected' if max_time == '15' else '' }}>Fino a 15 minuti</option>
-              <option value='30' {{ 'selected' if max_time == '30' else '' }}>Fino a 30 minuti</option>
-              <option value='60' {{ 'selected' if max_time == '60' else '' }}>Fino a 60 minuti</option>
-            </select>
-            <select name='meal_type'>
-              <option value=''>Tipo pasto</option>
-              <option value='Colazione' {{ 'selected' if meal_type == 'Colazione' else '' }}>Colazione</option>
-              <option value='Pranzo' {{ 'selected' if meal_type == 'Pranzo' else '' }}>Pranzo</option>
-              <option value='Cena' {{ 'selected' if meal_type == 'Cena' else '' }}>Cena</option>
-              <option value='Spuntino' {{ 'selected' if meal_type == 'Spuntino' else '' }}>Spuntino</option>
-            </select>
-            <input type='text' name='tag' value='{{ tag_filter }}' placeholder='Tag: veloce, famiglia'>
-            <button type='submit'>Cerca</button>
-          </form>
-        </section>
-
-        <a class='sidebar-create' href='{{ url_for("add_recipe") }}'>
-          <span class='sidebar-create-icon'>＋</span>
-          <span><strong>Aggiungi una ricetta</strong><small>Editor guidato con ingredienti e quantità</small></span>
-          <span aria-hidden='true'>→</span>
-        </a>
-      </aside>
-
-      <section class='results-area'>
-        <div class='results-header'>
-          <div>
-            <p class='results-kicker'>Risultati</p>
-            <h2>Le idee giuste per il momento giusto</h2>
-          </div>
-          <div class='results-pill'>{{ recipes|length }} ricette</div>
+  <main>
+    <section class='decision-hero'>
+      <div class='decision-copy'>
+        <p class='overline'>Il tuo posto a tavola, ogni giorno</p>
+        <h1>Stasera non devi pensarci tu.</h1>
+        <p class='hero-copy'>Poche ricette, scelte bene. Trova quella giusta per il tempo, l’umore e la fame che hai adesso.</p>
+        <div class='hero-buttons'>
+          <a class='button button-primary' href='{{ url_for("suggest_recipe") }}'>Scegli per me <span aria-hidden='true'>→</span></a>
+          <a class='button button-quiet' href='#ricette'>Esplora le ricette</a>
         </div>
+        <div class='mood-picker'>
+          <span>Ho voglia di</span>
+          <a href='{{ url_for("suggest_recipe", mood="veloce") }}'>qualcosa di veloce</a>
+          <a href='{{ url_for("suggest_recipe", mood="comfort") }}'>comfort</a>
+          <a href='{{ url_for("suggest_recipe", mood="pesce") }}'>pesce</a>
+        </div>
+      </div>
 
-        <section class='cards'>
-          {% if recipes %}
-            {% for recipe in recipes %}
-              <article class='card'>
-                <div class='card-top'>
-                  <div>
-                    <a class='recipe-title' href='{{ url_for("recipe_detail", slug=recipe["titolo"]|slugify) }}'>
-                      <h3>{{ recipe['titolo'] }}</h3>
-                    </a>
-                    <p class='meta'>{{ recipe['tipo_pasto'] }}</p>
-                  </div>
-                  <span class='pill'>{{ recipe['difficolta'] }}</span>
-                </div>
+      {% if featured %}
+        <a class='daily-pick' href='{{ url_for("recipe_detail", slug=featured["titolo"]|slugify) }}'>
+          <img src='{{ featured["immagine"] }}' alt='{{ featured["titolo"] }}'>
+          <span class='daily-shade'></span>
+          <span class='daily-label'>La scelta di oggi</span>
+          <span class='daily-content'>
+            <strong>{{ featured['titolo'] }}</strong>
+            <small>{{ featured['tempo_minuti'] }} min · {{ featured['difficolta'] }}</small>
+          </span>
+          <span class='daily-arrow' aria-hidden='true'>↗</span>
+        </a>
+      {% endif %}
+    </section>
 
-                <div class='quick-stats'>
-                  <span>🕒 {{ recipe['tempo_minuti'] }} min</span>
-                  <span>😅 {{ '😅' * (1 if recipe['difficolta'] == 'Facile' else 2 if recipe['difficolta'] == 'Media' else 3) }}</span>
-                </div>
+    <section class='discovery' id='ricette'>
+      <div class='section-title-row'>
+        <div>
+          <p class='overline'>Il ricettario</p>
+          <h2>Trova il prossimo piatto.</h2>
+        </div>
+        <p>{{ recipes|length }} {{ 'risultato' if recipes|length == 1 else 'risultati' }}</p>
+      </div>
 
-                <div class='card-section'>
-                  <h4>Ingredienti</h4>
-                  <ul>
-                    {% for item in recipe['ingredienti'] %}
-                      <li>
-                        {% if item.get('quantity') %}
-                          <strong>{{ item['quantity'] }}</strong> {{ item['name'] }}
-                        {% else %}
-                          {{ item['name'] }}
-                        {% endif %}
-                      </li>
-                    {% endfor %}
-                  </ul>
-                </div>
+      <form class='search-command' method='get'>
+        <label class='search-field'>
+          <span aria-hidden='true'>⌕</span>
+          <input type='search' name='q' value='{{ query }}' placeholder='Nome, ingrediente o desiderio…' aria-label='Cerca ricette'>
+        </label>
+        <label>
+          <span class='sr-only'>Tempo massimo</span>
+          <select name='max_time'>
+            <option value=''>Qualsiasi tempo</option>
+            <option value='20' {{ 'selected' if max_time == '20' else '' }}>Entro 20 min</option>
+            <option value='30' {{ 'selected' if max_time == '30' else '' }}>Entro 30 min</option>
+            <option value='60' {{ 'selected' if max_time == '60' else '' }}>Entro un’ora</option>
+          </select>
+        </label>
+        <label>
+          <span class='sr-only'>Momento del pasto</span>
+          <select name='meal_type'>
+            <option value=''>Ogni momento</option>
+            <option value='Colazione' {{ 'selected' if meal_type == 'Colazione' else '' }}>Colazione</option>
+            <option value='Pranzo' {{ 'selected' if meal_type == 'Pranzo' else '' }}>Pranzo</option>
+            <option value='Cena' {{ 'selected' if meal_type == 'Cena' else '' }}>Cena</option>
+            <option value='Spuntino' {{ 'selected' if meal_type == 'Spuntino' else '' }}>Spuntino</option>
+          </select>
+        </label>
+        <label>
+          <span class='sr-only'>Difficoltà</span>
+          <select name='difficulty'>
+            <option value=''>Ogni difficoltà</option>
+            <option value='Facile' {{ 'selected' if difficulty == 'Facile' else '' }}>Facile</option>
+            <option value='Media' {{ 'selected' if difficulty == 'Media' else '' }}>Media</option>
+            <option value='Difficile' {{ 'selected' if difficulty == 'Difficile' else '' }}>Difficile</option>
+          </select>
+        </label>
+        <button class='search-submit' type='submit'>Trova</button>
+        {% if query or max_time or meal_type or difficulty or tag_filter %}
+          <a class='clear-search' href='{{ url_for("home") }}' aria-label='Azzera filtri'>×</a>
+        {% endif %}
+      </form>
 
-                <div class='card-section'>
-                  <h4>Procedimento</h4>
-                  <p>{{ recipe['istruzioni'] }}</p>
-                </div>
+      <div class='recipe-grid'>
+        {% for recipe in recipes %}
+          <a class='recipe-card' href='{{ url_for("recipe_detail", slug=recipe["titolo"]|slugify) }}'>
+            <span class='recipe-media'>
+              <img src='{{ recipe["immagine"] }}' alt='' loading='lazy'>
+              <span class='time-badge'>{{ recipe['tempo_minuti'] }} min</span>
+              <span class='card-open' aria-hidden='true'>↗</span>
+            </span>
+            <span class='recipe-card-body'>
+              <span class='card-eyebrow'>{{ recipe['tipo_pasto'] }} · {{ recipe['difficolta'] }}</span>
+              <strong>{{ recipe['titolo'] }}</strong>
+              <span class='recipe-description'>{{ recipe['descrizione'] }}</span>
+              <span class='card-footer'>
+                <span>{{ recipe['ingredienti']|length }} ingredienti</span>
+                <span>
+                  {% for tag in recipe['tags'][:2] %}<em>#{{ tag }}</em>{% endfor %}
+                </span>
+              </span>
+            </span>
+          </a>
+        {% else %}
+          <div class='empty-state'>
+            <span aria-hidden='true'>⌕</span>
+            <h3>Qui non c’è ancora il piatto giusto.</h3>
+            <p>Prova ad allargare i filtri oppure lascia scegliere Tavola.</p>
+            <a class='button button-primary' href='{{ url_for("suggest_recipe") }}'>Sorprendimi</a>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
 
-                <div class='tags'>
-                  {% for tag in recipe['tags'] %}
-                    <span class='tag'>#{{ tag }}</span>
-                  {% endfor %}
-                </div>
-              </article>
-            {% endfor %}
-          {% else %}
-            <p class='empty'>Nessuna ricetta trovata.</p>
-          {% endif %}
-        </section>
-      </section>
-    </div>
-  </div>
+    <section class='add-band'>
+      <div>
+        <p class='overline'>Una ricetta che merita di restare?</p>
+        <h2>Portala a Tavola.</h2>
+      </div>
+      <a class='button button-light' href='{{ url_for("add_recipe") }}'>Aggiungi ricetta <span aria-hidden='true'>→</span></a>
+    </section>
+  </main>
+
+  <footer class='site-footer'>
+    <span>Tavola</span>
+    <p>Poche ricette. Quelle giuste.</p>
+  </footer>
 </body>
 </html>

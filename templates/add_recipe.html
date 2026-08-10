@@ -3,14 +3,15 @@
 <head>
   <meta charset='utf-8'>
   <meta name='viewport' content='width=device-width, initial-scale=1'>
-  <title>Nuova ricetta · Ricettario italiano</title>
+  <meta name='theme-color' content='#123b31'>
+  <title>Nuova ricetta · Tavola</title>
   <link rel='stylesheet' href='{{ url_for("static", filename="styles.css") }}'>
 </head>
 <body class='editor-page'>
   <header class='editor-nav'>
     <a class='back-link' href='{{ url_for("home") }}'>← Torna alle ricette</a>
     <div class='editor-progress' aria-label='Avanzamento ricetta'>
-      <span class='active'>1</span><i></i><span>2</span><i></i><span>3</span>
+      <span class='active' data-progress-step='1'>1</span><i></i><span data-progress-step='2'>2</span><i></i><span data-progress-step='3'>3</span>
     </div>
     <span class='editor-nav-label'>Nuova ricetta</span>
     <button class='mobile-publish' type='submit' form='recipe-form'>Salva</button>
@@ -38,6 +39,10 @@
           <label class='field field-wide'>
             <span>Nome della ricetta</span>
             <input id='title' type='text' name='title' value='{{ form.get("title", "") }}' placeholder='Es. Polpette di carne e spinaci' required>
+          </label>
+          <label class='field field-wide cover-field'>
+            <span>Foto di copertina <small>opzionale, incolla un URL</small></span>
+            <input id='image-url' type='url' name='image_url' value='{{ form.get("image_url", "") }}' placeholder='https://…'>
           </label>
           <div class='field-row'>
             <label class='field'>
@@ -118,7 +123,10 @@
 
       <aside class='editor-preview'>
         <p class='preview-label'>Anteprima dal vivo</p>
-        <div class='preview-plate' aria-hidden='true'><span>🍽️</span></div>
+        <div class='preview-cover'>
+          <img id='preview-image' src='https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=1000&q=80' alt='Anteprima copertina ricetta'>
+          <span>La tua copertina</span>
+        </div>
         <h2 id='preview-title'>La tua prossima ricetta</h2>
         <div class='preview-meta'>
           <span id='preview-meal'>Cena</span>
@@ -151,6 +159,9 @@
       document.querySelector('#preview-meal').textContent = document.querySelector('#meal-type').value;
       document.querySelector('#preview-time').textContent = `${document.querySelector('#time').value || '—'} min`;
       document.querySelector('#preview-difficulty').textContent = document.querySelector('#difficulty').value;
+      const imageUrl = document.querySelector('#image-url').value;
+      const previewImage = document.querySelector('#preview-image');
+      previewImage.src = imageUrl || 'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=1000&q=80';
       const previewList = document.querySelector('#preview-list');
       const rows = [...list.querySelectorAll('.ingredient-row')]
         .map(row => ({ quantity: row.children[0].value, name: row.children[1].value }))
@@ -168,6 +179,16 @@
         quantity.textContent = item.quantity;
         listItem.append(quantity, ` ${item.name}`);
         previewList.append(listItem);
+      });
+
+      const hasIdentity = document.querySelector('#title').value && document.querySelector('#time').value;
+      const hasIngredients = rows.length > 0;
+      const hasMethod = document.querySelector('#instructions').value.trim().length > 0;
+      const completed = [hasIdentity, hasIngredients, hasMethod];
+      document.querySelectorAll('[data-progress-step]').forEach((step, index) => {
+        step.classList.toggle('complete', completed[index]);
+        step.classList.toggle('active', !completed[index] && completed.slice(0, index).every(Boolean));
+        step.textContent = completed[index] ? '✓' : String(index + 1);
       });
     }
 

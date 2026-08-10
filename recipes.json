@@ -257,26 +257,5 @@
       "comfort",
       "forno"
     ]
-  },
-  {
-    "titolo": "Pasta test",
-    "ingredienti": [
-      {
-        "name": "pasta",
-        "quantity": ""
-      },
-      {
-        "name": "pomodoro",
-        "quantity": ""
-      }
-    ],
-    "istruzioni": "Cuoci tutto",
-    "difficolta": "Facile",
-    "tempo_minuti": 15,
-    "tipo_pasto": "Pranzo",
-    "tags": [
-      "test",
-      "veloce"
-    ]
   }
 ]
