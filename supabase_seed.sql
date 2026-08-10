@@ -149,7 +149,7 @@ values
     35,
     'Pranzo',
     array['pasta', 'pesce', 'cremosa'],
-    null
+    'https://heaccepvusbyfncqhdna.supabase.co/storage/v1/object/public/recipe-images/pasta-cremosa-al-branzino-e-broccoli/crema_di_broccolo.png'
   ),
   (
     'Rigatoni al ragù di coniglio',
@@ -215,6 +215,6 @@ values
 
 commit;
 
-select titolo, tipo_pasto, tempo_minuti
+select titolo, tipo_pasto, tempo_minuti, immagine
 from public.recipes
 order by titolo;

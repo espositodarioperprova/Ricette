@@ -49,7 +49,8 @@ def _to_ingredient_map(value):
                 qty = str(item.get("quantity") or item.get(
                     "quantita") or item.get("q") or "").strip()
                 if name:
-                    items.append({"name": name, "quantity": qty} if qty else _split_ingredient(name))
+                    items.append({"name": name, "quantity": qty}
+                                 if qty else _split_ingredient(name))
             else:
                 text = str(item).strip()
                 if text:
@@ -79,10 +80,14 @@ SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_ANON_KEY") or SUPABASE_SERVICE_ROLE_KEY
 SUPABASE_STORAGE_KEY = SUPABASE_SERVICE_ROLE_KEY or SUPABASE_KEY
 SUPABASE_TABLE = os.environ.get("SUPABASE_TABLE", "recipes")
-SUPABASE_STORAGE_BUCKET = os.environ.get("SUPABASE_STORAGE_BUCKET", "recipe-images")
+SUPABASE_STORAGE_BUCKET = os.environ.get(
+    "SUPABASE_STORAGE_BUCKET", "recipe-images")
 UPLOAD_DIR = BASE_DIR / "static" / "uploads"
 MAX_IMAGE_BYTES = 8 * 1024 * 1024
 ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp", "avif"}
+LOCAL_PASTA_CREMOSA_IMAGE_URL = (
+    "/static/pasta-cremosa-al-branzino-e-broccoli/crema_di_broccolo.png"
+)
 
 RECIPE_DESCRIPTIONS = {
     "Biscotti della longevità": "Un biscotto intenso e naturalmente dolce, pensato per una pausa che sa davvero di buono.",
@@ -132,7 +137,8 @@ DEFAULT_RECIPES = [
         "difficolta": "Media",
         "tempo_minuti": 35,
         "tipo_pasto": "Pranzo",
-        "tags": ["pasta", "pesce", "cremosa"]
+        "tags": ["pasta", "pesce", "cremosa"],
+        "immagine": LOCAL_PASTA_CREMOSA_IMAGE_URL
     },
     {
         "titolo": "Rigatoni al ragù di coniglio",
@@ -320,7 +326,8 @@ def save_uploaded_image(image_file, title):
 
     object_name = f"{_slugify(title)}/{uuid4().hex}.{detected_extension}"
     if SUPABASE_URL and SUPABASE_STORAGE_KEY:
-        encoded_path = "/".join(quote(part, safe="") for part in object_name.split("/"))
+        encoded_path = "/".join(quote(part, safe="")
+                                for part in object_name.split("/"))
         upload_url = (
             f"{SUPABASE_URL}/storage/v1/object/"
             f"{quote(SUPABASE_STORAGE_BUCKET, safe='')}/{encoded_path}"
@@ -373,7 +380,8 @@ def delete_uploaded_image(image_url):
         "Authorization": f"Bearer {SUPABASE_STORAGE_KEY}",
     }
     try:
-        delete_request = urllib_request.Request(delete_url, headers=headers, method="DELETE")
+        delete_request = urllib_request.Request(
+            delete_url, headers=headers, method="DELETE")
         with urllib_request.urlopen(delete_request, timeout=10):
             pass
     except (HTTPError, URLError, TimeoutError, ValueError):
@@ -433,7 +441,8 @@ def recipe_matches(recipe, query, difficulty, max_time, meal_type, tag_filter):
 
 
 def build_page(filtered_recipes, all_recipes, query, difficulty, max_time, meal_type, tag_filter):
-    featured = all_recipes[date.today().toordinal() % len(all_recipes)] if all_recipes else None
+    featured = all_recipes[date.today().toordinal() %
+                           len(all_recipes)] if all_recipes else None
     return render_template(
         "index.html",
         recipes=filtered_recipes,
@@ -477,7 +486,8 @@ def suggest_recipe():
     recipes = load_recipes()
     mood = request.args.get('mood', 'sorpresa').strip().lower()
     if mood == 'veloce':
-        candidates = [recipe for recipe in recipes if recipe['tempo_minuti'] <= 30]
+        candidates = [
+            recipe for recipe in recipes if recipe['tempo_minuti'] <= 30]
     elif mood in {'pesce', 'carne', 'pasta', 'comfort'}:
         candidates = [
             recipe for recipe in recipes

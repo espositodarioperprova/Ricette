@@ -112,7 +112,7 @@
           <a class='recipe-card {{ "has-photo" if recipe["immagine"] else "no-photo" }} tone-{{ loop.index0 % 3 }}' href='{{ url_for("recipe_detail", slug=recipe["titolo"]|slugify) }}'>
             {% if recipe['immagine'] %}
               <span class='recipe-media'>
-                <img src='{{ recipe["immagine"] }}' alt='{{ recipe["titolo"] }}' loading='lazy'>
+                <img src='{{ recipe["immagine"] }}' alt='{{ recipe["titolo"] }}'>
                 <span class='time-badge'>{{ recipe['tempo_minuti'] }} min</span>
                 <span class='card-open' aria-hidden='true'>↗</span>
               </span>

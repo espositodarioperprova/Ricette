@@ -101,7 +101,8 @@
       "pasta",
       "pesce",
       "cremosa"
-    ]
+    ],
+    "immagine": "/static/pasta-cremosa-al-branzino-e-broccoli/crema_di_broccolo.png"
   },
   {
     "titolo": "Rigatoni al ragù di coniglio",

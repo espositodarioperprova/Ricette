@@ -57,9 +57,17 @@ def test_seed_contains_only_curated_recipes():
         'Spaghetti integrali all’orata, pomodorini e crema di carote',
         'Polpette di carne e spinaci'
     }
-    meals_by_title = {recipe['titolo']: recipe['tipo_pasto'] for recipe in recipes}
+    meals_by_title = {recipe['titolo']: recipe['tipo_pasto']
+                      for recipe in recipes}
     assert meals_by_title['Rigatoni al ragù di coniglio'] == 'Pranzo'
     assert meals_by_title['Spaghetti integrali all’orata, pomodorini e crema di carote'] == 'Pranzo'
+
+    recipes_with_photos = [recipe for recipe in recipes if recipe['immagine']]
+    assert len(recipes_with_photos) == 1
+    assert recipes_with_photos[0]['titolo'] == 'Pasta cremosa al branzino e broccoli'
+    assert recipes_with_photos[0]['immagine'].endswith(
+        '/pasta-cremosa-al-branzino-e-broccoli/crema_di_broccolo.png'
+    )
 
 
 def test_recipes_use_array_fields_for_ingredients_and_tags():
