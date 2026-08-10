@@ -1,11 +1,51 @@
 from flask import Flask, render_template, request
 import json
 import os
+import re
+import unicodedata
 from pathlib import Path
 from urllib import request as urllib_request
 from urllib.error import HTTPError, URLError
 
+
+def _to_text_list(value):
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if isinstance(value, str):
+        return [item.strip() for item in value.split(",") if item.strip()]
+    return []
+
+
+def _to_ingredient_map(value):
+    if isinstance(value, list):
+        items = []
+        for item in value:
+            if isinstance(item, dict):
+                name = str(item.get("name") or item.get(
+                    "ingrediente") or "").strip()
+                qty = str(item.get("quantity") or item.get(
+                    "quantita") or item.get("q") or "").strip()
+                if name:
+                    items.append({"name": name, "quantity": qty})
+            else:
+                text = str(item).strip()
+                if text:
+                    items.append({"name": text, "quantity": ""})
+        return items
+    if isinstance(value, str):
+        return [{"name": part.strip(), "quantity": ""} for part in value.split(",") if part.strip()]
+    return []
+
+
+def _slugify(text):
+    normalized = unicodedata.normalize("NFKD", text).encode(
+        "ascii", "ignore").decode("ascii")
+    slug = re.sub(r"[^a-z0-9]+", "-", normalized.lower()).strip("-")
+    return slug or "ricetta"
+
+
 app = Flask(__name__, template_folder="templates", static_folder="static")
+app.jinja_env.filters["slugify"] = _slugify
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_FILE = BASE_DIR / "recipes.json"
@@ -18,30 +58,100 @@ SUPABASE_TABLE = os.environ.get("SUPABASE_TABLE", "recipes")
 DEFAULT_RECIPES = [
     {
         "titolo": "Biscotti della longevità",
-        "ingredienti": "100 g di okara di macadamia, 1 cucchiaio abbondante di olio evo, 1 bustina di vanillina, 3 datteri, 1 cucchiaio di semi di chia, 2 cucchiaini di cacao, 1 uovo, 2 cucchiai o più di fiocchi d'avena",
+        "ingredienti": [
+            {"name": "100 g di okara di macadamia", "quantity": ""},
+            {"name": "1 cucchiaio abbondante di olio evo", "quantity": ""},
+            {"name": "1 bustina di vanillina", "quantity": ""},
+            {"name": "3 datteri", "quantity": ""},
+            {"name": "1 cucchiaio di semi di chia", "quantity": ""},
+            {"name": "2 cucchiaini di cacao", "quantity": ""},
+            {"name": "1 uovo", "quantity": ""},
+            {"name": "2 cucchiai o più di fiocchi d'avena", "quantity": ""}
+        ],
         "istruzioni": "Frulla l'okara di macadamia con l'olio, la vanillina, i datteri, i semi di chia, il cacao e l'uovo fino a ottenere un impasto omogeneo. Aggiungi gli fiocchi d'avena fino a raggiungere una consistenza abbastanza soda da poter formare dei biscotti. Forma delle palline o piccoli biscotti, disponili su una teglia e cuoci a 180 °C per 12-15 minuti, fino a dorare leggermente.",
         "difficolta": "Facile",
         "tempo_minuti": 20,
         "tipo_pasto": "Spuntino",
-        "tags": "dolce, snack, longevità"
+        "tags": ["dolce", "snack", "longevità"]
     },
     {
         "titolo": "Pasta cremosa al branzino e broccoli",
-        "ingredienti": "per mezzo chilo di pasta integrale, abbondanti broccoli al vapore, sale, 1 cucchiaio di lievito nutrizionale, acqua, mezzo limone, 2 cucchiai di olio evo, 1 cucchiaio scarso di burro di anacardi, 250 g di filetti di branzino cotti, 1 spicchio d'aglio, olio per cuocere il pesce",
+        "ingredienti": [
+            {"name": "mezzo chilo di pasta integrale", "quantity": ""},
+            {"name": "broccoli al vapore", "quantity": ""},
+            {"name": "sale", "quantity": ""},
+            {"name": "1 cucchiaio di lievito nutrizionale", "quantity": ""},
+            {"name": "acqua", "quantity": ""},
+            {"name": "mezzo limone", "quantity": ""},
+            {"name": "2 cucchiai di olio evo", "quantity": ""},
+            {"name": "1 cucchiaio scarso di burro di anacardi", "quantity": ""},
+            {"name": "250 g di filetti di branzino cotti", "quantity": ""},
+            {"name": "1 spicchio d'aglio", "quantity": ""},
+            {"name": "olio per cuocere il pesce", "quantity": ""}
+        ],
         "istruzioni": "Lessa i broccoli al vapore fino a renderli morbidi, poi scolali e frullali con sale, lievito nutrizionale, acqua, mezzo limone, olio evo e il burro di anacardi fino ad ottenere una crema liscia. In una padella cuoci il branzino con un filo d'olio e uno spicchio d'aglio, poi sfilacciarlo o lasciarlo a pezzetti. Cuoci la pasta integrale, scolala al dente e condisci con la crema di broccoli. Aggiungi il branzino a cima e servi subito.",
         "difficolta": "Media",
         "tempo_minuti": 35,
         "tipo_pasto": "Pranzo",
-        "tags": "pasta, pesce, cremosa"
+        "tags": ["pasta", "pesce", "cremosa"]
     },
     {
         "titolo": "Rigatoni al ragù di coniglio",
-        "ingredienti": "1 coscia di coniglio già cotta e scarnificata, 200 g di rigatoni integrali, 1 cipolla piccola, 1 carota piccola, mezzo cucchiaino scarso di curcuma, un po' di polvere d'aglio, mezzo dado, sale, olio, 1 bicchiere d'acqua",
+        "ingredienti": [
+            {"name": "1 coscia di coniglio già cotta e scarnificata", "quantity": ""},
+            {"name": "200 g di rigatoni integrali", "quantity": ""},
+            {"name": "1 cipolla piccola", "quantity": ""},
+            {"name": "1 carota piccola", "quantity": ""},
+            {"name": "mezzo cucchiaino scarso di curcuma", "quantity": ""},
+            {"name": "polvere d'aglio", "quantity": ""},
+            {"name": "mezzo dado", "quantity": ""},
+            {"name": "sale", "quantity": ""},
+            {"name": "olio", "quantity": ""},
+            {"name": "1 bicchiere d'acqua", "quantity": ""}
+        ],
         "istruzioni": "Fai soffriggere la cipolla e la carota a cubetti piccoli in un filo d'olio. Aggiungi il coniglio già cotto e scarnificato, la curcuma, la polvere d'aglio, il dado e un bicchiere d'acqua. Cuoci a fuoco lento per circa 50 minuti, mescolando di tanto in tanto fino a ottenere un ragù saporito. Nel frattempo cuoci i rigatoni integrali. Scola la pasta, condisci con il ragù e servi caldo.",
         "difficolta": "Media",
         "tempo_minuti": 60,
         "tipo_pasto": "Cena",
-        "tags": "pasta, carne, comfort food"
+        "tags": ["pasta", "carne", "comfort food"]
+    },
+    {
+        "titolo": "Spaghetti integrali all’orata, pomodorini e crema di carote",
+        "ingredienti": [
+            {"name": "500 g di spaghetti integrali", "quantity": ""},
+            {"name": "250 g di filetti d'orata", "quantity": ""},
+            {"name": "400 g di pomodorini", "quantity": ""},
+            {"name": "2 carote molto ben lessate", "quantity": ""},
+            {"name": "acqua", "quantity": ""},
+            {"name": "olio evo", "quantity": ""},
+            {"name": "sale", "quantity": ""},
+            {"name": "aglio", "quantity": ""},
+            {"name": "poco dado in polvere", "quantity": ""},
+            {"name": "2-3 cucchiaioni pieni di lievito nutrizionale", "quantity": ""}
+        ],
+        "istruzioni": "Lessa le carote fino a renderle molto morbide, poi scolale e frullale con acqua, olio, sale, aglio, un po' di dado in polvere e il lievito nutrizionale fino a ottenere una crema liscia e salsosa. In una padella cuoci i pomodorini con un filo d'olio e uno spicchio d'aglio, quindi aggiungi l'orata e cuocila delicatamente. Nel frattempo cuoci gli spaghetti integrali al dente, scolali e condisci con il sughetto di pomodorini e il pesce. Servi con la crema di carote a fianco o sopra, per un piatto ricco e molto saporito.",
+        "difficolta": "Media",
+        "tempo_minuti": 35,
+        "tipo_pasto": "Cena",
+        "tags": ["pasta", "pesce", "cremosa", "integrale"]
+    },
+    {
+        "titolo": "Polpette di carne e spinaci",
+        "ingredienti": [
+            {"name": "500 g di macinato misto", "quantity": ""},
+            {"name": "250 g di spinaci surgelati", "quantity": ""},
+            {"name": "2 uova", "quantity": ""},
+            {"name": "pangrattato", "quantity": ""},
+            {"name": "3 cucchiai di latte", "quantity": ""},
+            {"name": "aglio", "quantity": ""},
+            {"name": "sale", "quantity": ""},
+            {"name": "curcuma", "quantity": ""}
+        ],
+        "istruzioni": "Lessa gli spinaci surgelati, strizzali bene e tritali grossolanamente. In una ciotola mescola il macinato, gli spinaci, le uova, il pangrattato, il latte, l'aglio, il sale e un pizzico di curcuma fino a ottenere un composto compatto. Forma le polpette, sistemale su una teglia e cuoci in forno a 180-200 °C per 20-25 minuti, fino a dorare bene.",
+        "difficolta": "Media",
+        "tempo_minuti": 30,
+        "tipo_pasto": "Cena",
+        "tags": ["carne", "comfort", "forno"]
     }
 ]
 
@@ -49,21 +159,21 @@ DEFAULT_RECIPES = [
 def normalize_recipe(raw_recipe):
     return {
         "titolo": raw_recipe.get("titolo") or raw_recipe.get("title") or "",
-        "ingredienti": raw_recipe.get("ingredienti") or raw_recipe.get("ingredients") or "",
+        "ingredienti": _to_ingredient_map(raw_recipe.get("ingredienti") or raw_recipe.get("ingredients")),
         "istruzioni": raw_recipe.get("istruzioni") or raw_recipe.get("instructions") or "",
         "difficolta": raw_recipe.get("difficolta") or raw_recipe.get("difficulty") or "Facile",
         "tempo_minuti": int(raw_recipe.get("tempo_minuti") or raw_recipe.get("time") or 0),
         "tipo_pasto": raw_recipe.get("tipo_pasto") or raw_recipe.get("meal_type") or "Pranzo",
-        "tags": raw_recipe.get("tags") or ""
+        "tags": _to_text_list(raw_recipe.get("tags"))
     }
 
 
 def is_valid_recipe(recipe):
     title = (recipe.get("titolo") or "").strip()
-    tags = (recipe.get("tags") or "").lower()
+    tags = [t.lower() for t in recipe.get("tags", []) if isinstance(t, str)]
     if not title:
         return False
-    if title.lower() == "pasta test" or "test" in tags:
+    if title.lower() == "pasta test" or any("test" in tag for tag in tags):
         return False
     return True
 
@@ -138,11 +248,12 @@ recipes = load_recipes()
 def recipe_matches(recipe, query, difficulty, max_time, meal_type, tag_filter):
     haystack = " ".join([
         recipe["titolo"],
-        recipe["ingredienti"],
+        " ".join([item.get("name", "")
+                 for item in recipe.get("ingredienti", [])]),
         recipe["istruzioni"],
         recipe["difficolta"],
         recipe["tipo_pasto"],
-        recipe["tags"]
+        " ".join(recipe.get("tags", []))
     ]).lower()
 
     if query and query.lower() not in haystack:
@@ -157,7 +268,7 @@ def recipe_matches(recipe, query, difficulty, max_time, meal_type, tag_filter):
         wanted_tags = [x.strip().lower()
                        for x in tag_filter.split(",") if x.strip()]
         recipe_tags = [x.strip().lower()
-                       for x in recipe["tags"].split(",") if x.strip()]
+                       for x in recipe.get("tags", []) if x.strip()]
         if not all(any(tag == wanted for tag in recipe_tags) for wanted in wanted_tags):
             return False
     return True
@@ -175,6 +286,16 @@ def build_page(filtered_recipes, query, difficulty, max_time, meal_type, tag_fil
         message=message,
         success=success,
     )
+
+
+@app.route('/ricetta/<slug>', methods=['GET'])
+def recipe_detail(slug):
+    recipes = load_recipes()
+    recipe = next((item for item in recipes if _slugify(
+        item['titolo']) == slug.lower()), None)
+    if not recipe:
+        return "Ricetta non trovata", 404
+    return render_template("recipe_detail.html", recipe=recipe)
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -203,12 +324,12 @@ def home():
             else:
                 recipe = {
                     'titolo': title,
-                    'ingredienti': ingredients,
+                    'ingredienti': _to_ingredient_map(ingredients),
                     'istruzioni': instructions,
                     'difficolta': difficulty,
                     'tempo_minuti': int(time),
                     'tipo_pasto': meal_type,
-                    'tags': tags
+                    'tags': _to_text_list(tags)
                 }
                 recipes.append(recipe)
                 save_recipes(recipes)

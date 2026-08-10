@@ -36,13 +36,19 @@ def test_can_add_recipe_with_admin_password(client):
     assert b'Ricetta aggiunta con successo.' in response.data
 
 
-def test_seed_contains_only_user_recipes():
+def test_seed_contains_only_curated_recipes():
     recipes = load_recipes()
-    assert len(recipes) >= 5
-    assert {recipe['titolo'] for recipe in recipes} >= {
+    assert len(recipes) == 5
+    assert {recipe['titolo'] for recipe in recipes} == {
         'Biscotti della longevità',
         'Pasta cremosa al branzino e broccoli',
         'Rigatoni al ragù di coniglio',
         'Spaghetti integrali all’orata, pomodorini e crema di carote',
-        'Gnocchi al pesto di zucchine e ricotta'
+        'Polpette di carne e spinaci'
     }
+
+
+def test_recipes_use_array_fields_for_ingredients_and_tags():
+    recipes = load_recipes()
+    assert any(isinstance(recipe['ingredienti'], list) for recipe in recipes)
+    assert any(isinstance(recipe['tags'], list) for recipe in recipes)

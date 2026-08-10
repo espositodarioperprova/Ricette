@@ -7,22 +7,50 @@
   <link rel='stylesheet' href='{{ url_for("static", filename="styles.css") }}'>
 </head>
 <body>
-  <div class='container'>
-    <header>
-      <h1>Ricettario italiano</h1>
-      <p class='subtitle'>Un piccolo POC elegante per cercare ricette facilmente, filtrare per ingrediente, difficoltà, tempo, tipo di pasto e tag, e aggiungere nuove ricette in modo rapido.</p>
-      <p class='small'>Le ricette vengono caricate da un file locale in questa versione demo.</p>
+  <div class='page-shell'>
+    <header class='hero'>
+      <div>
+        <p class='eyebrow'>Ricette semplici, belle e saporite</p>
+        <h1>Ricettario italiano</h1>
+        <p class='subtitle'>Cerca, filtra e salva piatti che ti fanno venire voglia di cucinare.</p>
+      </div>
+      <div class='hero-badge'>✨ Ogni giorno una nuova idea</div>
     </header>
 
     {% if message %}
       <div class='message {{ "success" if success else "error" }}'>{{ message }}</div>
     {% endif %}
 
+    <section class='assistant-panel'>
+      <div>
+        <p class='assistant-label'>Il tuo assistente cucina</p>
+        <h2>Non sai cosa mangiare?</h2>
+        <p>Ti aiutiamo a scegliere in 10 secondi: veloce, comfort, leggero o elegante.</p>
+      </div>
+      <div class='assistant-actions'>
+        <a class='assistant-link' href='/?q=pasta'>🍝 Pasta</a>
+        <a class='assistant-link' href='/?q=pesce'>🐟 Pesce</a>
+        <a class='assistant-link' href='/?q=carne'>🥩 Carne</a>
+        <a class='assistant-link' href='/?q=veloce'>⚡ Veloce</a>
+      </div>
+    </section>
+
+    <section class='quick-actions'>
+      <a class='chip' href='/?max_time=20'>⚡ Pronto in 20 min</a>
+      <a class='chip' href='/?q=leggero'>🥗 Leggero</a>
+      <a class='chip' href='/?q=pasta'>🍝 Pasta</a>
+      <a class='chip' href='/?q=pesce'>🐟 Pesce</a>
+      <a class='chip' href='/?q=comfort'>🧑‍🍳 Comfort</a>
+    </section>
+
     <div class='grid'>
       <section class='panel'>
-        <h2>Cerca ricette</h2>
+        <div class='panel-title'>
+          <h2>🔎 Cerca ricette</h2>
+          <p>Trova il piatto giusto per il momento giusto.</p>
+        </div>
         <form method='get'>
-          <input type='text' name='q' value='{{ query }}' placeholder='Cerca per ingrediente, nome o tag'>
+          <input type='text' name='q' value='{{ query }}' placeholder='Cerca per nome, ingrediente o tag'>
           <select name='difficulty'>
             <option value=''>Difficoltà</option>
             <option value='Facile' {{ 'selected' if difficulty == 'Facile' else '' }}>Facile</option>
@@ -48,7 +76,10 @@
       </section>
 
       <section class='panel'>
-        <h2>Aggiungi ricetta (admin)</h2>
+        <div class='panel-title'>
+          <h2>➕ Aggiungi ricetta</h2>
+          <p>Sei l’admin? Aggiungi con facilità.</p>
+        </div>
         <form method='post'>
           <input type='text' name='title' placeholder='Titolo ricetta' required>
           <textarea name='ingredients' rows='3' placeholder='Ingredienti' required></textarea>
@@ -77,18 +108,43 @@
         {% for recipe in recipes %}
           <article class='card'>
             <div class='card-top'>
-              <h3>{{ recipe['titolo'] }}</h3>
+              <div>
+                <a class='recipe-title' href='{{ url_for("recipe_detail", slug=recipe["titolo"]|slugify) }}'>
+                  <h3>{{ recipe['titolo'] }}</h3>
+                </a>
+                <p class='meta'>{{ recipe['tipo_pasto'] }}</p>
+              </div>
               <span class='pill'>{{ recipe['difficolta'] }}</span>
             </div>
-            <p><strong>Tempo:</strong> {{ recipe['tempo_minuti'] }} minuti</p>
-            <p><strong>Pasto:</strong> {{ recipe['tipo_pasto'] }}</p>
-            <p><strong>Ingredienti:</strong> {{ recipe['ingredienti'] }}</p>
-            <p><strong>Procedimento:</strong> {{ recipe['istruzioni'] }}</p>
+
+            <div class='quick-stats'>
+              <span>🕒 {{ recipe['tempo_minuti'] }} min</span>
+              <span>😅 {{ '😅' * (1 if recipe['difficolta'] == 'Facile' else 2 if recipe['difficolta'] == 'Media' else 3) }}</span>
+            </div>
+
+            <div class='card-section'>
+              <h4>Ingredienti</h4>
+              <ul>
+                {% for item in recipe['ingredienti'] %}
+                  <li>
+                    {% if item.get('quantity') %}
+                      <strong>{{ item['quantity'] }}</strong> {{ item['name'] }}
+                    {% else %}
+                      {{ item['name'] }}
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+
+            <div class='card-section'>
+              <h4>Procedimento</h4>
+              <p>{{ recipe['istruzioni'] }}</p>
+            </div>
+
             <div class='tags'>
-              {% for tag in recipe['tags'].split(',') %}
-                {% if tag.strip() %}
-                  <span class='tag'>{{ tag.strip() }}</span>
-                {% endif %}
+              {% for tag in recipe['tags'] %}
+                <span class='tag'>#{{ tag }}</span>
               {% endfor %}
             </div>
           </article>

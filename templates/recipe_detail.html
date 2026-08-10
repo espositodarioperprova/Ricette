@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang='it'>
+<head>
+  <meta charset='utf-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1'>
+  <title>{{ recipe['titolo'] }}</title>
+  <link rel='stylesheet' href='{{ url_for("static", filename="styles.css") }}'>
+</head>
+<body>
+  <div class='page-shell'>
+    <a class='back-link' href='{{ url_for("home") }}'>← Torna al ricettario</a>
+    <article class='detail-card'>
+      <h1>{{ recipe['titolo'] }}</h1>
+      <div class='quick-stats'>
+        <span>🕒 {{ recipe['tempo_minuti'] }} min</span>
+        <span>😅 {{ '😅' * (1 if recipe['difficolta'] == 'Facile' else 2 if recipe['difficolta'] == 'Media' else 3) }}</span>
+        <span>🍽️ {{ recipe['tipo_pasto'] }}</span>
+      </div>
+      <div class='card-section'>
+        <h4>Ingredienti</h4>
+        <ul>
+          {% for item in recipe['ingredienti'] %}
+            <li>
+              {% if item.get('quantity') %}
+                <strong>{{ item['quantity'] }}</strong> {{ item['name'] }}
+              {% else %}
+                {{ item['name'] }}
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div class='card-section'>
+        <h4>Procedimento</h4>
+        <p>{{ recipe['istruzioni'] }}</p>
+      </div>
+      <div class='tags'>
+        {% for tag in recipe['tags'] %}
+          <span class='tag'>#{{ tag }}</span>
+        {% endfor %}
+      </div>
+    </article>
+  </div>
+</body>
+</html>
