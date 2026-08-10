@@ -15,6 +15,25 @@ create table if not exists public.recipes (
 
 alter table public.recipes add column if not exists descrizione text;
 alter table public.recipes add column if not exists immagine text;
+alter table public.recipes enable row level security;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'recipes'
+      and policyname = 'Public recipes are readable'
+  ) then
+    create policy "Public recipes are readable"
+      on public.recipes
+      for select
+      to anon, authenticated
+      using (true);
+  end if;
+end
+$$;
 
 update public.recipes
 set descrizione = case titolo
