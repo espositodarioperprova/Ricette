@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang='it'>
+<head>
+  <meta charset='utf-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1'>
+  <meta name='theme-color' content='#123b31'>
+  <title>Accesso admin · Tavola</title>
+  <link rel='stylesheet' href='{{ url_for("static", filename="styles.css") }}'>
+</head>
+<body class='admin-login-page'>
+  <main class='admin-login-shell'>
+    <section class='admin-login-panel'>
+      <p class='overline'>Area riservata</p>
+      <h1>Cura il ricettario.</h1>
+      <p>Accedi per aggiungere o sostituire le fotografie delle ricette.</p>
+      {% if message %}<p class='message error' role='alert'>{{ message }}</p>{% endif %}
+      <form method='post'>
+        <input type='hidden' name='next' value='{{ next_url }}'>
+        <label>
+          Password admin
+          <input type='password' name='password' autocomplete='current-password' required autofocus>
+        </label>
+        <button type='submit'>Entra</button>
+      </form>
+      <a class='back-link' href='{{ next_url }}'>← Torna a Tavola</a>
+    </section>
+  </main>
+</body>
+</html>

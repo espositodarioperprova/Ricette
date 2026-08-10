@@ -76,5 +76,11 @@ document.querySelector('[data-next-step]')?.addEventListener('click', () => {
   nextStep?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 });
 
+document.querySelector('[data-admin-photo]')?.addEventListener('change', event => {
+  const filename = event.target.files[0]?.name;
+  const label = document.querySelector('[data-admin-photo-label]');
+  if (label) label.textContent = filename || 'Scegli foto';
+});
+
 restoreProgress();
 updateProgress();

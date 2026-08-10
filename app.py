@@ -1,4 +1,5 @@
-from flask import Flask, redirect, render_template, request, url_for
+from flask import Flask, flash, redirect, render_template, request, session, url_for
+from hmac import compare_digest
 import json
 import os
 import random
@@ -72,6 +73,10 @@ app.jinja_env.filters["slugify"] = _slugify
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
 
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "cambiaquesta")
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY") or ADMIN_PASSWORD
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = bool(os.environ.get("VERCEL"))
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_ANON_KEY") or SUPABASE_SERVICE_ROLE_KEY
@@ -93,6 +98,7 @@ def normalize_recipe(raw_recipe):
     if "images.unsplash.com" in image:
         image = ""
     return {
+        "id": raw_recipe.get("id"),
         "titolo": title,
         "ingredienti": _to_ingredient_map(raw_recipe.get("ingredienti") or raw_recipe.get("ingredients")),
         "istruzioni": raw_recipe.get("istruzioni") or raw_recipe.get("instructions") or "",
@@ -146,12 +152,12 @@ def load_recipes():
 
 
 def save_recipe_to_supabase(recipe):
-    if not (SUPABASE_URL and SUPABASE_KEY):
+    if not (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY):
         return False
     try:
         headers = {
-            "apikey": SUPABASE_KEY,
-            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "apikey": SUPABASE_SERVICE_ROLE_KEY,
+            "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
             "Content-Type": "application/json"
         }
         payload = json.dumps(recipe).encode("utf-8")
@@ -162,6 +168,31 @@ def save_recipe_to_supabase(recipe):
             method="POST"
         )
         with urllib_request.urlopen(request, timeout=10):
+            return True
+    except (HTTPError, URLError, TimeoutError, ValueError):
+        return False
+
+
+def update_recipe_image(recipe_id, image_url):
+    if not (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY):
+        return False
+    headers = {
+        "apikey": SUPABASE_SERVICE_ROLE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+        "Content-Type": "application/json",
+    }
+    request_url = (
+        f"{SUPABASE_URL}/rest/v1/{SUPABASE_TABLE}"
+        f"?id=eq.{quote(str(recipe_id), safe='')}"
+    )
+    try:
+        update_request = urllib_request.Request(
+            request_url,
+            data=json.dumps({"immagine": image_url}).encode("utf-8"),
+            headers=headers,
+            method="PATCH",
+        )
+        with urllib_request.urlopen(update_request, timeout=10):
             return True
     except (HTTPError, URLError, TimeoutError, ValueError):
         return False
@@ -262,6 +293,9 @@ def persist_recipe(recipe):
 
 @app.errorhandler(RequestEntityTooLarge)
 def handle_oversized_upload(error):
+    if request.endpoint == "update_recipe_photo":
+        flash("La foto è troppo grande. Il limite massimo è 8 MB.", "error")
+        return redirect(url_for("recipe_detail", slug=request.view_args["slug"]))
     return render_template(
         "add_recipe.html",
         message="La foto è troppo grande. Il limite massimo è 8 MB.",
@@ -276,6 +310,11 @@ def handle_recipe_store_error(error):
         "Tavola non riesce a collegarsi a Supabase. Controlla la configurazione del servizio.",
         503,
     )
+
+
+@app.context_processor
+def inject_admin_state():
+    return {"is_admin": session.get("is_admin", False)}
 
 
 def recipe_matches(recipe, query, difficulty, max_time, meal_type, tag_filter):
@@ -346,6 +385,62 @@ def recipe_detail(slug):
         steps=steps,
         related=related,
     )
+
+
+@app.route('/admin', methods=['GET', 'POST'])
+def admin_login():
+    next_url = request.values.get('next', '').strip()
+    if not next_url.startswith('/') or next_url.startswith('//'):
+        next_url = url_for('home')
+    if request.method == 'POST':
+        password = request.form.get('password', '')
+        if compare_digest(password, ADMIN_PASSWORD):
+            session['is_admin'] = True
+            return redirect(next_url)
+        return render_template(
+            'admin_login.html',
+            message='Password non corretta.',
+            next_url=next_url,
+        ), 401
+    return render_template('admin_login.html', message=None, next_url=next_url)
+
+
+@app.post('/admin/esci')
+def admin_logout():
+    session.pop('is_admin', None)
+    return redirect(url_for('home'))
+
+
+@app.post('/ricetta/<slug>/foto')
+def update_recipe_photo(slug):
+    if not session.get('is_admin'):
+        return redirect(url_for('admin_login', next=url_for('recipe_detail', slug=slug)))
+
+    recipes = load_recipes()
+    recipe = next((item for item in recipes if _slugify(
+        item['titolo']) == slug.lower()), None)
+    if not recipe:
+        return "Ricetta non trovata", 404
+
+    image_file = request.files.get('recipe_image')
+    if not image_file or not image_file.filename:
+        flash('Scegli una foto da caricare.', 'error')
+        return redirect(url_for('recipe_detail', slug=slug))
+
+    image_url, image_error = save_uploaded_image(image_file, recipe['titolo'])
+    if image_error:
+        flash(image_error, 'error')
+        return redirect(url_for('recipe_detail', slug=slug))
+    if not recipe.get('id') or not update_recipe_image(recipe['id'], image_url):
+        delete_uploaded_image(image_url)
+        flash('La foto è stata caricata, ma non associata alla ricetta.', 'error')
+        return redirect(url_for('recipe_detail', slug=slug))
+
+    previous_image = recipe.get('immagine', '')
+    if previous_image and previous_image != image_url:
+        delete_uploaded_image(previous_image)
+    flash('Foto aggiornata.', 'success')
+    return redirect(url_for('recipe_detail', slug=slug))
 
 
 @app.route('/suggeriscimi', methods=['GET'])

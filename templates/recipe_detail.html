@@ -44,6 +44,29 @@
       </div>
     </section>
 
+    {% set messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class='detail-messages' aria-live='polite'>
+        {% for category, message in messages %}<p class='message {{ category }}'>{{ message }}</p>{% endfor %}
+      </div>
+    {% endif %}
+
+    {% if is_admin %}
+      <section class='admin-recipe-tools' aria-label='Gestione ricetta'>
+        <div>
+          <p class='overline'>Gestione ricetta</p>
+          <strong>{{ 'Sostituisci la fotografia' if recipe['immagine'] else 'Aggiungi una fotografia' }}</strong>
+        </div>
+        <form method='post' action='{{ url_for("update_recipe_photo", slug=recipe["titolo"]|slugify) }}' enctype='multipart/form-data'>
+          <label>
+            <input type='file' name='recipe_image' accept='image/jpeg,image/png,image/webp,image/avif' data-admin-photo required>
+            <span data-admin-photo-label>Scegli foto</span>
+          </label>
+          <button type='submit'>{{ 'Sostituisci' if recipe['immagine'] else 'Carica foto' }}</button>
+        </form>
+      </section>
+    {% endif %}
+
     <section class='cooking-shell' id='preparazione'>
       <aside class='ingredients-panel'>
         <div class='panel-heading'>
@@ -117,6 +140,16 @@
       </section>
     {% endif %}
   </main>
+
+  <footer class='site-footer'>
+    <span>Tavola</span>
+    <p>Poche ricette. Quelle giuste.</p>
+    {% if is_admin %}
+      <form method='post' action='{{ url_for("admin_logout") }}'><button type='submit'>Esci da admin</button></form>
+    {% else %}
+      <a class='admin-entry' href='{{ url_for("admin_login", next=request.path) }}'>Accesso admin</a>
+    {% endif %}
+  </footer>
 
   <div class='cook-dock' data-cook-dock>
     <button type='button' data-exit-cook aria-label='Esci dalla modalità cucina'>×</button>

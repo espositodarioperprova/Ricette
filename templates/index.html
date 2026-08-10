@@ -160,6 +160,11 @@
   <footer class='site-footer'>
     <span>Tavola</span>
     <p>Poche ricette. Quelle giuste.</p>
+    {% if is_admin %}
+      <form method='post' action='{{ url_for("admin_logout") }}'><button type='submit'>Esci da admin</button></form>
+    {% else %}
+      <a class='admin-entry' href='{{ url_for("admin_login") }}'>Accesso admin</a>
+    {% endif %}
   </footer>
 </body>
 </html>

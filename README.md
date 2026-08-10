@@ -36,6 +36,7 @@ pytest -q
    - `SUPABASE_SERVICE_ROLE_KEY`: chiave server privata usata per caricare le foto
    - `SUPABASE_TABLE`: nome della tabella, facoltativo; il valore predefinito è `recipes`
    - `SUPABASE_STORAGE_BUCKET`: nome del bucket, facoltativo; il valore predefinito è `recipe-images`
+   - `SECRET_KEY`: chiave casuale usata per firmare la sessione admin; se assente viene usata `ADMIN_PASSWORD`
 4. Fai un nuovo deploy dopo aver salvato le variabili.
 
 `SUPABASE_SERVICE_ROLE_KEY` deve restare esclusivamente nelle variabili server di Vercel e non deve mai essere inserita nel frontend o nel repository. Supabase è l'unica fonte delle ricette in ogni ambiente: senza `SUPABASE_URL` e una chiave valida, Tavola restituisce un errore `503` invece di mostrare dati locali obsoleti.

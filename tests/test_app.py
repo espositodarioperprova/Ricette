@@ -1,4 +1,5 @@
 import app as app_module
+from io import BytesIO
 
 import pytest
 
@@ -6,6 +7,7 @@ app = app_module.app
 
 SAMPLE_RECIPES = [
     {
+        "id": 1,
         "titolo": "Bocconcini di tacchino in crema",
         "ingredienti": [
             {"name": "bocconcini di tacchino", "quantity": "500 g"},
@@ -20,6 +22,7 @@ SAMPLE_RECIPES = [
         "descrizione": "Tacchino tenero e cremoso.",
     },
     {
+        "id": 2,
         "titolo": "Carciofi al gratin",
         "ingredienti": [
             {"name": "cuori di carciofo surgelati", "quantity": "250 g"},
@@ -108,3 +111,63 @@ def test_normalize_recipe_uses_only_supabase_fields():
 
     assert recipe['descrizione'] == 'Descrizione modificata direttamente in Supabase.'
     assert recipe['ingredienti'] == [{'name': 'ingrediente', 'quantity': '1'}]
+
+
+def test_photo_controls_are_hidden_until_admin_login(client, monkeypatch):
+    monkeypatch.setattr(app_module, 'load_recipes', lambda: SAMPLE_RECIPES)
+    recipe_url = '/ricetta/bocconcini-di-tacchino-in-crema'
+
+    public_response = client.get(recipe_url)
+    login_response = client.post('/admin', data={
+        'password': 'cambiaquesta',
+        'next': recipe_url,
+    })
+    admin_response = client.get(recipe_url)
+
+    assert b'Gestione ricetta' not in public_response.data
+    assert login_response.status_code == 302
+    assert login_response.headers['Location'].endswith(recipe_url)
+    assert b'Gestione ricetta' in admin_response.data
+    assert b'Aggiungi una fotografia' in admin_response.data
+
+
+def test_admin_can_update_existing_recipe_photo(client, monkeypatch):
+    updated = []
+    monkeypatch.setattr(app_module, 'load_recipes', lambda: SAMPLE_RECIPES)
+    monkeypatch.setattr(
+        app_module,
+        'save_uploaded_image',
+        lambda image, title: ('https://example.com/recipe.png', None),
+    )
+    monkeypatch.setattr(
+        app_module,
+        'update_recipe_image',
+        lambda title, image_url: updated.append((title, image_url)) or True,
+    )
+    with client.session_transaction() as admin_session:
+        admin_session['is_admin'] = True
+
+    response = client.post(
+        '/ricetta/bocconcini-di-tacchino-in-crema/foto',
+        data={'recipe_image': (BytesIO(b'photo'), 'recipe.png')},
+        content_type='multipart/form-data',
+    )
+
+    assert response.status_code == 302
+    assert updated == [(
+        1,
+        'https://example.com/recipe.png',
+    )]
+
+
+def test_photo_update_requires_admin_session(client, monkeypatch):
+    monkeypatch.setattr(app_module, 'load_recipes', lambda: SAMPLE_RECIPES)
+
+    response = client.post(
+        '/ricetta/bocconcini-di-tacchino-in-crema/foto',
+        data={'recipe_image': (BytesIO(b'photo'), 'recipe.png')},
+        content_type='multipart/form-data',
+    )
+
+    assert response.status_code == 302
+    assert '/admin?' in response.headers['Location']
